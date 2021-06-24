@@ -9,7 +9,7 @@ from accent_analyser.rules.RuleSubstitue import RuleSubstitue
 from accent_analyser.rules.RuleSubstitue2 import RuleSubstitue2
 from accent_analyser.rules.VoicedFricative1 import VoicedFricative1
 
-_r_match = "(\d+)(?:\<((?:[0]*\.\d*)|(?:0)|(?:1))\>)?"
+_r_match = r"(\d+)(?:\<((?:[0]*\.\d*)|(?:0)|(?:1))\>)?"
 
 _rules_dict = {
   '1': RuleOmit,
