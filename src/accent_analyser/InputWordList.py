@@ -1,23 +1,24 @@
-from src.InputWord import InputWord
-from src.rules.EngRule import EngRule
-from src.rules.IpaRule import IpaRule
-from src.rules.SentenceRule import SentenceRule
+from accent_analyser.InputWord import InputWord
+from accent_analyser.rules.EngRule import EngRule
+from accent_analyser.rules.IpaRule import IpaRule
+from accent_analyser.rules.SentenceRule import SentenceRule
 
 
 def get_relevant_rules(all_rules: list, t: type):
   relevant_rules = [r for r in all_rules if isinstance(r, t)]
   return relevant_rules
 
+
 class InputWordList():
   def __init__(self, sentence):
     super().__init__()
     self.sentence = sentence
     self._extract_words()
-  
+
   def _extract_words(self):
     tokens = self.sentence.split(' ')
     self.input_words = [InputWord(token) for token in tokens]
-  
+
   def transform_sentence(self, rules):
     relev_rules = get_relevant_rules(rules, SentenceRule)
     for rule in relev_rules:

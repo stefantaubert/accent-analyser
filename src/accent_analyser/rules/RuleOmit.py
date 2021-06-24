@@ -1,4 +1,5 @@
-from src.rules.IpaRule import IpaRule
+from accent_analyser.rules.IpaRule import IpaRule
+
 
 class RuleOmit(IpaRule):
   def __init__(self, likelihood=1.0):

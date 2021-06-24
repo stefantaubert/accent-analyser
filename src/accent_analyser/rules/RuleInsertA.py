@@ -1,5 +1,5 @@
-from src.InputWord import InputWord
-from src.rules.SentenceRule import SentenceRule
+from accent_analyser.InputWord import InputWord
+from accent_analyser.rules.SentenceRule import SentenceRule
 
 
 class RuleInsertA(SentenceRule):

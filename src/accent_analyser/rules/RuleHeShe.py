@@ -1,4 +1,5 @@
-from src.rules.EngRule import EngRule
+from accent_analyser.rules.EngRule import EngRule
+
 
 class RuleHeShe(EngRule):
   def __init__(self, likelihood=1.0):

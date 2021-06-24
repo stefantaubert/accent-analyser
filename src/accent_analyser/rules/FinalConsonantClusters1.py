@@ -1,11 +1,13 @@
-from src.rules.IpaRule import IpaRule
+from accent_analyser.rules.IpaRule import IpaRule
+
 
 def replace(word: str):
   if word.endswith('st'):
     return word[:-1]
   else:
     return word
-  
+
+
 class FinalConsonantClusters1(IpaRule):
   def __init__(self, likelihood=0.79):
     super().__init__(likelihood)
@@ -15,6 +17,7 @@ class FinalConsonantClusters1(IpaRule):
     word = words[current_index].content
     word = replace(word)
     return word
-  
+
+
 if __name__ == "__main__":
   print(replace("first"))

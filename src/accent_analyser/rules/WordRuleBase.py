@@ -1,4 +1,5 @@
-from src.rules.RuleBase import RuleBase
+from accent_analyser.rules.RuleBase import RuleBase
+
 
 class WordRuleBase(RuleBase):
   def __init__(self, likelihood=1.0):

@@ -1,4 +1,5 @@
-from src.rules.WordRuleBase import WordRuleBase
+from accent_analyser.rules.WordRuleBase import WordRuleBase
+
 
 class IpaRule(WordRuleBase):
   def __init__(self, likelihood=1.0):

@@ -1,7 +1,9 @@
-from src.rules.IpaRule import IpaRule
+from accent_analyser.rules.IpaRule import IpaRule
+
 
 def replace(word: str):
   return word.replace("v", "w")
+
 
 class VoicedFricative1(IpaRule):
   def __init__(self, likelihood=0.51):
@@ -12,4 +14,3 @@ class VoicedFricative1(IpaRule):
     word = words[current_index].content
     word = replace(word)
     return word
-  

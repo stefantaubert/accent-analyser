@@ -1,14 +1,13 @@
-from src.rules.IpaRule import IpaRule
+from accent_analyser.rules.EngRule import EngRule
 
-class RuleSubstitue(IpaRule):
+
+class RuleRemoveThe(EngRule):
   def __init__(self, likelihood=1.0):
     super().__init__(likelihood)
-    
+
   def _convert_core(self, words: list, current_index: int):
     word = words[current_index].content
-    if word == "ðer":
-      return "der"
-    elif word == "ðɪs":
-      return "dɪs"
+    if word == "the":
+      return ""
     else:
       return word

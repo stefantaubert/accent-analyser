@@ -1,7 +1,8 @@
 import argparse
 
-from src.rule_parser import get_rules_from_str, print_rules
-from src.RuleHandler import apply_rules
+from accent_analyser.rule_parser import get_rules_from_str, print_rules
+from accent_analyser.RuleHandler import apply_rules
+
 
 def run(args):
   rules = get_rules_from_str(args.rules)
