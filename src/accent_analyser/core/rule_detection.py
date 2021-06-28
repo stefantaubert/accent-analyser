@@ -1,10 +1,10 @@
 
 from collections import Counter, OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from difflib import ndiff
 from enum import IntEnum
 from logging import StrFormatStyle, getLogger
-from typing import List, Optional
+from typing import Dict, List, Optional
 from typing import OrderedDict as OrderedDictType
 from typing import Tuple
 
@@ -32,7 +32,12 @@ class RuleType(IntEnum):
     assert False
 
 
-@dataclass(eq=True, frozen=True)
+class ChangeType(IntEnum):
+  ADD = 0
+  REMOVE = 1
+
+
+@dataclass  # (eq=True, frozen=True)
 class WordEntry:
   graphemes: List[str]
   phonemes: List[str]
@@ -54,14 +59,16 @@ class WordEntry:
   def is_empty(self) -> bool:
     return self.graphemes == self.phonemes == self.phones == []
 
+  def __hash__(self) -> int:
+    return hash((tuple(self.graphemes), tuple(self.phonemes), tuple(self.phones)))
 
-@dataclass(eq=True, frozen=True)
+
+@dataclass()  # (eq=True, frozen=True)
 class Rule():
-  rule_type: RuleType
-  word: WordEntry
-  positions: List[int]
-  from_symbols: List[str]
-  to_symbols: List[str]
+  rule_type: RuleType = RuleType.NOTHING
+  positions: List[int] = field(default_factory=list)
+  from_symbols: List[str] = field(default_factory=list)
+  to_symbols: List[str] = field(default_factory=list)
 
   @property
   def from_str(self) -> str:
@@ -85,6 +92,129 @@ class Rule():
     if self.rule_type == RuleType.NOTHING:
       return ""
     assert False
+
+  def __hash__(self) -> int:
+    return hash((tuple(self.from_symbols), tuple(self.to_symbols), tuple(self.positions), self.rule_type))
+
+
+@dataclass()  # (eq=True, frozen=True)
+class Change():
+  change: str
+  change_type: ChangeType
+
+
+def clustered_changes_to_rules(clustered_changes: List[OrderedDictType[int, Change]]) -> Tuple[Rule]:
+  rules = []
+  if len(clustered_changes) == 0:
+    rules.append(Rule())
+  else:
+    for changes_cluster in clustered_changes:
+      rule = changes_cluster_to_rule(changes_cluster)
+      rules.append(rule)
+  rules_tuple = tuple(rules)
+  return rules_tuple
+
+
+def get_rules(words: List[WordEntry]) -> OrderedDictType[WordEntry, List[Tuple[Rule]]]:
+  rules_dict: OrderedDictType[WordEntry, List[Rule]] = OrderedDict()
+  for word in words:
+    assert not word.is_empty
+    if word not in rules_dict:
+      rules_dict[word] = []
+    changes = get_ndiff_info(word.phonemes, word.phones)
+    clustered_changes = cluster_changes(changes)
+    rules_tuple = clustered_changes_to_rules(clustered_changes)
+    rules_dict[word].append(rules_tuple)
+  return rules_dict
+
+
+def get_ndiff_info(l1: List[str], l2: List[str]) -> OrderedDictType[int, Change]:
+  res = ndiff(l1, l2)
+  result: OrderedDictType[int, Change] = OrderedDict()
+  for change_pos, change in enumerate(res):
+    change_type = change[:2]
+    change_value = change[2:]
+    if change_type == "  ":
+      continue
+    else:
+      change = Change(
+        change=change_value,
+        change_type=ChangeType.ADD if change_type == "+ " else ChangeType.REMOVE,
+      )
+      result[change_pos] = change
+  return result
+
+
+def cluster_changes(changes: OrderedDictType[int, Change]) -> List[OrderedDictType[int, Change]]:
+  if len(changes) == 0:
+    return []
+
+  clusters = []
+  last_pos = None
+  current_cluster = OrderedDict()
+  for pos, change in changes.items():
+    if last_pos is None:
+      current_cluster[pos] = change
+    else:
+      if pos == last_pos + 1:
+        current_cluster[pos] = change
+      else:
+        clusters.append(current_cluster)
+        current_cluster = OrderedDict()
+        current_cluster[pos] = change
+    last_pos = pos
+
+  assert len(current_cluster) > 0
+  clusters.append(current_cluster)
+
+  return clusters
+
+
+def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Rule:
+  assert len(cluster) > 0
+
+  cluster_types = [change.change_type for _, change in cluster.items()]
+  cluster_changed_symbols = [change.change for _, change in cluster.items()]
+  unique_cluster_types = OrderedSet(cluster_types)
+
+  rule_type: RuleType
+  from_symbols: List[str] = []
+  to_symbols: List[str] = []
+  positions: List[int] = list(cluster.keys())
+
+  if len(unique_cluster_types) == 1:
+    if unique_cluster_types[0] == ChangeType.ADD:
+      rule_type = RuleType.INSERTION
+      to_symbols = cluster_changed_symbols
+    else:
+      assert unique_cluster_types[0] == ChangeType.REMOVE
+      rule_type = RuleType.OMISSION
+      from_symbols = cluster_changed_symbols
+  else:
+    assert len(unique_cluster_types) == 2
+    rule_type = RuleType.SUBSTITUTION
+    add_del = unique_cluster_types[0] == ChangeType.ADD
+    del_add = unique_cluster_types[0] == ChangeType.REMOVE
+    from_positions = []
+    to_positions = []
+    assert add_del or del_add
+    for pos, change in cluster.items():
+      if change.change_type == ChangeType.REMOVE:
+        from_symbols.append(change.change)
+        from_positions.append(pos)
+      else:
+        to_symbols.append(change.change)
+        to_positions.append(pos)
+    positions = to_positions if add_del else from_positions
+
+  rule = Rule(
+    from_symbols=from_symbols,
+    to_symbols=to_symbols,
+    positions=positions,
+    rule_type=rule_type,
+  )
+
+  return rule
 
 
 def get_info(word: WordEntry) -> List[Rule]:
@@ -126,12 +256,11 @@ def get_info(word: WordEntry) -> List[Rule]:
       from_symbols=[],
       to_symbols=[],
       positions=[],
-      word=word,
     )
     return [empty_rule]
 
   for cluster in clusters:
-    #print(f"Cluster {i+1}/{len(clusters)}")
+    # print(f"Cluster {i+1}/{len(clusters)}")
     cluster_types = [change_types[x] for x in cluster]
     cluster_values = [change_values[x] for x in cluster]
     unique_cluster_types = OrderedSet(cluster_types)
@@ -161,7 +290,6 @@ def get_info(word: WordEntry) -> List[Rule]:
           to_symbols.append(x_val)
 
     rule = Rule(
-      word=word,
       from_symbols=from_symbols,
       to_symbols=to_symbols,
       positions=positions,
@@ -214,7 +342,10 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
         phonemes=phonemes,
         phones=phones,
     )
-    res.append(entry)
+
+    if not entry.is_empty:
+      res.append(entry)
+
   return res
 
 
@@ -301,7 +432,7 @@ def parse_eng_data(words: List[WordEntry]):
   # print(rules_str)
 
   omission_words = {}
-  for rule in omission_rules:
+  for rule in omission_words:
     if not rule.word.phonemes_str in omission_words:
       omission_words[rule.word.phonemes_str] = []
     omission_words[rule.word.phonemes_str].append(rule)
@@ -313,3 +444,42 @@ def parse_eng_data(words: List[WordEntry]):
     v: List[Rule]
     omitted_symbols = {f"{x.from_str} ({x.positions_str})" for x in v}
     logger.info(f"{k}: {', '.join(list(sorted(omitted_symbols)))}")
+
+
+def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule]]]) -> List[Tuple[WordEntry, Rule, int, int]]:
+
+  res = []
+  for word, rules in word_rules.items():
+    rule_counter = Counter(rules)
+
+    for rule_tuple, count in rule_counter.items():
+      res.append((
+        word,
+        rule_tuple,
+        count,
+        len(rules),
+      ))
+
+  return res
+
+
+def word_stats_to_df(word_stats: List[Tuple[WordEntry, Rule, int, int]]) -> DataFrame:
+  resulting_csv_data = []
+  resulting_csv_data.sort()
+  for word, rule, count, total_count in word_stats:
+    resulting_csv_data.append((
+      word.graphemes_str,
+      word.phonemes_str,
+      word.phones_str,
+      str(rule),
+      count,
+      total_count,
+      f"{count/total_count*100:.2f}",
+    ))
+
+  res = DataFrame(
+    data=resulting_csv_data,
+    columns=["English", "Phonemes", "Phones", "Rules",
+             "Occurrences", "Occurrences Total", "Occurrences (%)"],
+  )
+  return res

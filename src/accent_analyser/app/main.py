@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 import pandas as pd
-from core.rule_detection import df_to_data, parse_eng_data
+from accent_analyser.core.rule_detection import df_to_data, parse_eng_data
 from text_utils.ipa2symb import IPAExtractionSettings
 
 
