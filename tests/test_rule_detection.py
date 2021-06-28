@@ -85,12 +85,28 @@ def test_get_rules__two_words():
   })
 
 
-def test_get_ndiff_info__substitution():
-  res = get_ndiff_info(["a"], ["b"])
+def test_get_ndiff_info__substitution__remove_add():
+  res = get_ndiff_info(
+    ["a"],
+    ["c"]
+  )
 
   assert res == OrderedDict({
     0: Change("a", ChangeType.REMOVE),
-    1: Change("b", ChangeType.ADD),
+    1: Change("c", ChangeType.ADD),
+  })
+
+
+def test_get_ndiff_info__substitution__add_remove():
+  res = get_ndiff_info(
+    ['a', 'b'],
+    ['c']
+  )
+
+  assert res == OrderedDict({
+    0: Change("c", ChangeType.ADD),
+    1: Change("a", ChangeType.REMOVE),
+    2: Change("b", ChangeType.REMOVE),
   })
 
 
@@ -221,16 +237,38 @@ def test_changes_cluster_to_rule__insertion():
 
 def test_changes_cluster_to_rule__substitution_add_remove():
   changes = OrderedDict({
-    0: Change("a", ChangeType.ADD),
-    1: Change("b", ChangeType.REMOVE),
+    0: Change("c", ChangeType.ADD),
+    1: Change("a", ChangeType.REMOVE),
+    2: Change("b", ChangeType.REMOVE),
   })
 
   res = changes_cluster_to_rule(changes)
 
   assert_res = Rule(
     rule_type=RuleType.SUBSTITUTION,
-    from_symbols=["b"],
-    to_symbols=["a"],
+    from_symbols=["a", "b"],
+    to_symbols=["c"],
+    positions=[0],
+  )
+
+  assert res.rule_type == assert_res.rule_type
+  assert res.from_symbols == assert_res.from_symbols
+  assert res.to_symbols == assert_res.to_symbols
+  assert res.positions == assert_res.positions
+
+
+def test_changes_cluster_to_rule__substitution_remove_add():
+  changes = OrderedDict({
+    0: Change("a", ChangeType.REMOVE),
+    1: Change("b", ChangeType.ADD),
+  })
+
+  res = changes_cluster_to_rule(changes)
+
+  assert_res = Rule(
+    rule_type=RuleType.SUBSTITUTION,
+    from_symbols=["a"],
+    to_symbols=["b"],
     positions=[0],
   )
 
@@ -352,6 +390,38 @@ def test_get_word_stats__multiple_rules_with_same_content_were_merged():
 
   assert len(res) == 1
   assert res[0] == (word1, (rule1,), 4, 4)
+
+
+def test_get_word_stats__multiple_rules():
+  word1 = WordEntry(
+    graphemes=["a"],
+    phonemes=["b"],
+    phones=["c"],
+  )
+
+  word2 = WordEntry(
+    graphemes=["a"],
+    phonemes=["b"],
+    phones=["e"],
+  )
+
+  rule1 = Rule(
+    rule_type=RuleType.INSERTION,
+    from_symbols=[],
+    to_symbols=["a"],
+    positions=[0],
+  )
+
+  word_rules = OrderedDict({
+    word1: [(rule1,), (rule1,), (rule1,), (rule1,)],
+    word2: [(rule1,)],
+  })
+
+  res = get_word_stats(word_rules)
+
+  assert len(res) == 2
+  assert res[0] == (word1, (rule1,), 4, 5)
+  assert res[1] == (word2, (rule1,), 1, 5)
 
 
 def test_word_stats_to_df():

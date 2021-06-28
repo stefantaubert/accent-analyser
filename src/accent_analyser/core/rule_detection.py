@@ -90,7 +90,7 @@ class Rule():
     if self.rule_type == RuleType.SUBSTITUTION:
       return f"S({self.from_str};{self.to_str};{self.positions_str})"
     if self.rule_type == RuleType.NOTHING:
-      return ""
+      return "Unchanged"
     assert False
 
   def __hash__(self) -> int:
@@ -205,6 +205,10 @@ def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Rule:
       else:
         to_symbols.append(change.change)
         to_positions.append(pos)
+    if add_del:
+      print(add_del)
+    else:
+      print(not add_del)
     positions = to_positions if add_del else from_positions
 
   rule = Rule(
@@ -268,15 +272,23 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
 def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule]]]) -> List[Tuple[WordEntry, Tuple[Rule], int, int]]:
 
   res = []
-  for word, rules in word_rules.items():
-    rule_counter = Counter(rules)
+  tmp: OrderedDictType[Tuple[Tuple[str], Tuple[str]], Tuple[Rule]] = OrderedDict()
+  for word_combi, rules in word_rules.items():
+    k = (tuple(word_combi.graphemes), tuple(word_combi.phonemes))
+    if k not in tmp:
+      tmp[k] = OrderedDict()
+    tmp[k][word_combi] = rules
 
-    for rule_tuple, count in rule_counter.items():
+  for _, word_combi_dict in tmp.items():
+    total_count = len([x for y in word_combi_dict.values() for x in y])
+
+    for word_combi, rules in word_combi_dict.items():
+      first_rule_tuple = rules[0]
       res.append((
-        word,
-        rule_tuple,
-        count,
+        word_combi,
+        first_rule_tuple,
         len(rules),
+        total_count,
       ))
 
   return res

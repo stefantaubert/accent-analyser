@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.main import print_info
+from accent_analyser.app.main import print_info
 
 if __name__ == "__main__":
   print_info(paths=[
