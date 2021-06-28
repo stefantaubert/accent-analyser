@@ -238,6 +238,9 @@ def test_changes_cluster_to_rule__insertion():
 def test_changes_cluster_to_rule__substitution_add_remove():
   #from_w = ['s', 'm', 'ˈ', 'a', 'ɪ', 'l']
   #to_w = ['s', 'm', 'ˈ', 'e', 'l']
+
+  #['p', 'ʌ', 't', 'ˈ', 'e', 'ɪ', 't', 'o', 'ʊ', 'z']
+  #['p', 'ʌ', 't', 'ˈ', 'e', 'ɪ', 't', 'u', 's']
   changes = OrderedDict({
     0: Change("c", ChangeType.ADD),
     1: Change("a", ChangeType.REMOVE),
