@@ -209,7 +209,12 @@ def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Rule:
       print(add_del)
     else:
       print(not add_del)
-    positions = to_positions if add_del else from_positions
+
+    # TODO: reevaluate
+    if del_add:
+      positions = from_positions
+    else:
+      positions = [x - len(to_positions) for x in from_positions]
 
   rule = Rule(
     from_symbols=from_symbols,

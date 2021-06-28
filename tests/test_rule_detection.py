@@ -236,6 +236,8 @@ def test_changes_cluster_to_rule__insertion():
 
 
 def test_changes_cluster_to_rule__substitution_add_remove():
+  #from_w = ['s', 'm', 'ˈ', 'a', 'ɪ', 'l']
+  #to_w = ['s', 'm', 'ˈ', 'e', 'l']
   changes = OrderedDict({
     0: Change("c", ChangeType.ADD),
     1: Change("a", ChangeType.REMOVE),
@@ -248,7 +250,7 @@ def test_changes_cluster_to_rule__substitution_add_remove():
     rule_type=RuleType.SUBSTITUTION,
     from_symbols=["a", "b"],
     to_symbols=["c"],
-    positions=[0],
+    positions=[0, 1],
   )
 
   assert res.rule_type == assert_res.rule_type
@@ -258,6 +260,8 @@ def test_changes_cluster_to_rule__substitution_add_remove():
 
 
 def test_changes_cluster_to_rule__substitution_remove_add():
+  #from_w = ['h', 'ˈ', 'a', 'ʊ']
+  #to_w =['x', 'ˈ', 'a', 'ʊ']
   changes = OrderedDict({
     0: Change("a", ChangeType.REMOVE),
     1: Change("b", ChangeType.ADD),
