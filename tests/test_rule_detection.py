@@ -4,6 +4,7 @@ from accent_analyser.core.rule_detection import (Change, ChangeType, Rule,
                                                  RuleType, WordEntry,
                                                  changes_cluster_to_rule,
                                                  cluster_changes,
+                                                 get_indicies_as_str,
                                                  get_ndiff_info, get_rules,
                                                  get_word_stats,
                                                  sort_rules_after_positions,
@@ -454,7 +455,7 @@ def test_word_stats_to_df():
   assert len(res) == 1
   assert list(res.columns) == ["Word", "English", "Phonemes", "Phones", "Rules",
                                "Occurrences", "Occurrences Total", "Occurrences (%)"]
-  assert list(res.iloc[0]) == [1, 'a', 'b', 'c', 'I(a;0)', 3, 4, '75.00']
+  assert list(res.iloc[0]) == [1, 'a', 'b', 'c', 'I(a;1)', 3, 4, '75.00']
 
 
 def test_sort_word_stats_df():
@@ -484,3 +485,27 @@ def test_sort_rules_after_positions():
   res = sort_rules_after_positions(rules)
 
   assert res == (r1, r2, r3, r4)
+
+
+def test_get_indicies_as_str__empty_list():
+  res = get_indicies_as_str([])
+
+  assert res == ""
+
+
+def test_get_indicies_as_str__one_entry():
+  res = get_indicies_as_str([1])
+
+  assert res == "1"
+
+
+def test_get_indicies_as_str__two_entries():
+  res = get_indicies_as_str([1, 2])
+
+  assert res == "1,2"
+
+
+def test_get_indicies_as_str__three_entries():
+  res = get_indicies_as_str([1, 2, 3])
+
+  assert res == "1-3"

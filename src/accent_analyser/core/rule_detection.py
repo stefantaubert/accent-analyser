@@ -63,6 +63,13 @@ class WordEntry:
     return hash((tuple(self.graphemes), tuple(self.phonemes), tuple(self.phones)))
 
 
+def get_indicies_as_str(indicies: List[int]):
+  if len(indicies) <= 2:
+    return ','.join(list(map(str, indicies)))
+  else:
+    return f"{indicies[0]}-{indicies[-1]}"
+
+
 @dataclass()  # (eq=True, frozen=True)
 class Rule():
   rule_type: RuleType = RuleType.NOTHING
@@ -80,7 +87,8 @@ class Rule():
 
   @property
   def positions_str(self) -> str:
-    return ','.join(list(map(str, self.positions)))
+    positions_one_based = [x + 1 for x in self.positions]
+    return get_indicies_as_str(positions_one_based)
 
   def __str__(self) -> str:
     if self.rule_type == RuleType.OMISSION:
