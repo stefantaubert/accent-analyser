@@ -277,7 +277,7 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
   return res
 
 
-def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule]]]) -> List[Tuple[WordEntry, Tuple[Rule], int, int]]:
+def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule]]]) -> List[Tuple[int, WordEntry, Tuple[Rule], int, int]]:
 
   res = []
   tmp: OrderedDictType[Tuple[Tuple[str], Tuple[str]], Tuple[Rule]] = OrderedDict()
@@ -287,12 +287,13 @@ def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule]]]) ->
       tmp[k] = OrderedDict()
     tmp[k][word_combi] = rules
 
-  for _, word_combi_dict in tmp.items():
+  for i, (_, word_combi_dict) in enumerate(tmp.items()):
     total_count = len([x for y in word_combi_dict.values() for x in y])
 
     for word_combi, rules in word_combi_dict.items():
       first_rule_tuple = rules[0]
       res.append((
+        i,
         word_combi,
         first_rule_tuple,
         len(rules),
@@ -307,11 +308,12 @@ def sort_rules_after_positions(rules: Tuple[Rule]) -> Tuple[Rule]:
   return res
 
 
-def word_stats_to_df(word_stats: List[Tuple[WordEntry, Tuple[Rule], int, int]]) -> DataFrame:
+def word_stats_to_df(word_stats: List[Tuple[int, WordEntry, Tuple[Rule], int, int]]) -> DataFrame:
   resulting_csv_data = []
-  for word, rules_tuple, count, total_count in word_stats:
-    rules_str = ', '.join([str(x) for x in sort_rules_after_positions(rules_tuple)])
+  for i, word, rules_tuple, count, total_count in word_stats:
+    rules_str = ', '.join([str(rule) for rule in sort_rules_after_positions(rules_tuple)])
     resulting_csv_data.append((
+      i + 1,
       word.graphemes_str,
       word.phonemes_str,
       word.phones_str,
@@ -325,7 +327,7 @@ def word_stats_to_df(word_stats: List[Tuple[WordEntry, Tuple[Rule], int, int]]) 
 
   res = DataFrame(
     data=resulting_csv_data,
-    columns=["English", "Phonemes", "Phones", "Rules",
+    columns=["Word", "English", "Phonemes", "Phones", "Rules",
              "Occurrences", "Occurrences Total", "Occurrences (%)"],
   )
 
@@ -333,5 +335,5 @@ def word_stats_to_df(word_stats: List[Tuple[WordEntry, Tuple[Rule], int, int]]) 
 
 
 def sort_word_stats_df(resulting_csv_data: List[Tuple[str, str, str, str, int, int, str]]):
-  ''' Sorts: English ASC, Phonemes ASC, Occurrences DESC, Rules ASC'''
-  resulting_csv_data.sort(key=lambda x: (x[0], x[1], x[5] - x[4], x[3]))
+  ''' Sorts: Word ASC, Occurrences DESC, Rules ASC'''
+  resulting_csv_data.sort(key=lambda x: (x[0], x[6] - x[5], x[4]))

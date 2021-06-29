@@ -305,14 +305,19 @@ def test_get_word_stats__one_word_one_rule():
   res = get_word_stats(word_rules)
 
   assert len(res) == 1
-  assert res[0] == (word1, (rule1,), 1, 1)
+  assert res[0] == (0, word1, (rule1,), 1, 1)
 
 
 def test_get_word_stats__multiple_words_multiple_rules():
-  word1 = WordEntry(
+  word1_1 = WordEntry(
     graphemes=["a"],
     phonemes=["b"],
     phones=["c"],
+  )
+  word1_2 = WordEntry(
+      graphemes=["a"],
+      phonemes=["b"],
+      phones=["d"],
   )
   word2 = WordEntry(
     graphemes=["a"],
@@ -335,19 +340,17 @@ def test_get_word_stats__multiple_words_multiple_rules():
   )
 
   word_rules = OrderedDict({
-    word1: [(rule1,), (rule1, rule1,), (rule1, rule2,)],
-    word2: [(rule1, rule1,), (rule1,), (rule2,), (rule1,)],
+    word1_1: [(rule1,), (rule1,), (rule1,)],
+    word1_2: [(rule1,), (rule1,)],
+    word2: [(rule2,), (rule2,), (rule2,)],
   })
 
   res = get_word_stats(word_rules)
 
-  assert len(res) == 6
-  assert res[0] == (word1, (rule1,), 1, 3)
-  assert res[1] == (word1, (rule1, rule1,), 1, 3)
-  assert res[2] == (word1, (rule1, rule2,), 1, 3)
-  assert res[3] == (word2, (rule1, rule1,), 1, 4)
-  assert res[4] == (word2, (rule1,), 2, 4)
-  assert res[5] == (word2, (rule2,), 1, 4)
+  assert len(res) == 3
+  assert res[0] == (0, word1_1, (rule1,), 3, 5)
+  assert res[1] == (0, word1_2, (rule1,), 2, 5)
+  assert res[2] == (1, word2, (rule2,), 3, 3)
 
 
 def test_rule_hash__same_content_is_equal():
@@ -396,7 +399,7 @@ def test_get_word_stats__multiple_rules_with_same_content_were_merged():
   res = get_word_stats(word_rules)
 
   assert len(res) == 1
-  assert res[0] == (word1, (rule1,), 4, 4)
+  assert res[0] == (0, word1, (rule1,), 4, 4)
 
 
 def test_get_word_stats__multiple_rules():
@@ -427,8 +430,8 @@ def test_get_word_stats__multiple_rules():
   res = get_word_stats(word_rules)
 
   assert len(res) == 2
-  assert res[0] == (word1, (rule1,), 4, 5)
-  assert res[1] == (word2, (rule1,), 1, 5)
+  assert res[0] == (0, word1, (rule1,), 4, 5)
+  assert res[1] == (0, word2, (rule1,), 1, 5)
 
 
 def test_word_stats_to_df():
@@ -445,30 +448,30 @@ def test_word_stats_to_df():
     positions=[0],
   )
 
-  word_stats = [(word1, (rule1,), 3, 4)]
+  word_stats = [(0, word1, (rule1,), 3, 4)]
   res = word_stats_to_df(word_stats)
 
   assert len(res) == 1
-  assert list(res.columns) == ["English", "Phonemes", "Phones", "Rules",
+  assert list(res.columns) == ["Word", "English", "Phonemes", "Phones", "Rules",
                                "Occurrences", "Occurrences Total", "Occurrences (%)"]
-  assert list(res.iloc[0]) == ['a', 'b', 'c', 'I(a;0)', 3, 4, '75.00']
+  assert list(res.iloc[0]) == [1, 'a', 'b', 'c', 'I(a;0)', 3, 4, '75.00']
 
 
 def test_sort_word_stats_df():
   resulting_csv_data = [
-    ("a", "b", "a", "ruleB", 1, 4, "75.00"),
-    ("a", "b", "a", "ruleC", 2, 4, "75.00"),
-    ("a", "b", "a", "ruleA", 1, 4, "75.00"),
-    ("a", "a", "a", "rule1", 1, 4, "75.00"),
+    (1, "a", "b", "a", "ruleB", 1, 4, "75.00"),
+    (1, "a", "b", "a", "ruleC", 2, 4, "75.00"),
+    (1, "a", "b", "a", "ruleA", 1, 4, "75.00"),
+    (0, "a", "a", "a", "rule1", 1, 4, "75.00"),
   ]
 
   sort_word_stats_df(resulting_csv_data)
 
   assert len(resulting_csv_data) == 4
-  assert resulting_csv_data[0] == ("a", "a", "a", "rule1", 1, 4, "75.00")
-  assert resulting_csv_data[1] == ("a", "b", "a", "ruleC", 2, 4, "75.00")
-  assert resulting_csv_data[2] == ("a", "b", "a", "ruleA", 1, 4, "75.00")
-  assert resulting_csv_data[3] == ("a", "b", "a", "ruleB", 1, 4, "75.00")
+  assert resulting_csv_data[0] == (0, "a", "a", "a", "rule1", 1, 4, "75.00")
+  assert resulting_csv_data[1] == (1, "a", "b", "a", "ruleC", 2, 4, "75.00")
+  assert resulting_csv_data[2] == (1, "a", "b", "a", "ruleA", 1, 4, "75.00")
+  assert resulting_csv_data[3] == (1, "a", "b", "a", "ruleB", 1, 4, "75.00")
 
 
 def test_sort_rules_after_positions():
