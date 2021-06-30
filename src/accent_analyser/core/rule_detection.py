@@ -1,5 +1,7 @@
 
+import dataclasses
 from collections import Counter, OrderedDict
+from copy import deepcopy
 from dataclasses import dataclass, field
 from difflib import ndiff
 from enum import IntEnum
@@ -90,6 +92,18 @@ class Rule():
     positions_one_based = [x + 1 for x in self.positions]
     return get_indicies_as_str(positions_one_based)
 
+  @property
+  def str_no_pos(self) -> str:
+    if self.rule_type == RuleType.OMISSION:
+      return f"O({self.from_str})"
+    if self.rule_type == RuleType.INSERTION:
+      return f"I({self.to_str})"
+    if self.rule_type == RuleType.SUBSTITUTION:
+      return f"S({self.from_str};{self.to_str})"
+    if self.rule_type == RuleType.NOTHING:
+      return "Unchanged"
+    assert False
+
   def __str__(self) -> str:
     if self.rule_type == RuleType.OMISSION:
       return f"O({self.from_str};{self.positions_str})"
@@ -105,7 +119,19 @@ class Rule():
     return hash((tuple(self.from_symbols), tuple(self.to_symbols), tuple(self.positions), self.rule_type))
 
 
-@dataclass()  # (eq=True, frozen=True)
+def rule_to_str(rule_type: RuleType, from_str: List[str], to_str: List[str]):
+  if rule_type == RuleType.OMISSION:
+    return f"O({from_str})"
+  if rule_type == RuleType.INSERTION:
+    return f"I({to_str})"
+  if rule_type == RuleType.SUBSTITUTION:
+    return f"S({from_str};{to_str})"
+  if rule_type == RuleType.NOTHING:
+    return "Unchanged"
+  assert False
+
+
+@ dataclass()  # (eq=True, frozen=True)
 class Change():
   change: str
   change_type: ChangeType
@@ -213,11 +239,6 @@ def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Rule:
       else:
         to_symbols.append(change.change)
         to_positions.append(pos)
-    if add_del:
-      print(add_del)
-    else:
-      print(not add_del)
-
     # TODO: reevaluate
     if del_add:
       positions = from_positions
@@ -285,8 +306,7 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
   return res
 
 
-def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule]]]) -> List[Tuple[int, WordEntry, Tuple[Rule], int, int]]:
-
+def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule, ...]]]) -> List[Tuple[int, WordEntry, Tuple[Rule, ...], int, int]]:
   res = []
   tmp: OrderedDictType[Tuple[Tuple[str], Tuple[str]], Tuple[Rule]] = OrderedDict()
   for word_combi, rules in word_rules.items():
@@ -311,7 +331,69 @@ def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule]]]) ->
   return res
 
 
-def sort_rules_after_positions(rules: Tuple[Rule]) -> Tuple[Rule]:
+def get_rule_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule, ...]]]) -> List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]]:
+  res: List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]] = []
+  tmp: OrderedDictType[Rule, List[WordEntry]] = OrderedDict()
+  for word_combi, rule_tuples in word_rules.items():
+    for rule_tuple in rule_tuples:
+      for rule in rule_tuple:
+        rule_copy = deepcopy(rule)
+        rule_copy.positions.clear()
+        if rule_copy not in tmp:
+          tmp[rule_copy] = []
+        tmp[rule_copy].append(word_combi)
+
+  for i, (rule, word_combies) in enumerate(tmp.items()):
+    if rule.rule_type == RuleType.NOTHING:
+      continue
+    c = Counter(word_combies)
+    for word, count in c.items():
+      assert len(word_rules[word]) > 0 and len(set(word_rules[word])) == 1
+      original_rule_tuple = word_rules[word][0]
+      res.append((
+        i + 1,
+        rule,
+        word,
+        original_rule_tuple,
+        count,
+        len(word_combies),
+      ))
+  return res
+
+
+def rule_stats_to_df(word_stats: List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]]) -> DataFrame:
+  resulting_csv_data = []
+  for i, rule, word_entry, orig_rule_tuple, count, total_count in word_stats:
+    rules_str = ', '.join([str(rule) for rule in sort_rules_after_positions(orig_rule_tuple)])
+    resulting_csv_data.append((
+      i + 1,
+      rule.str_no_pos,
+      word_entry.graphemes_str,
+      word_entry.phonemes_str,
+      word_entry.phones_str,
+      rules_str,
+      count,
+      total_count,
+      f"{count/total_count*100:.2f}",
+    ))
+
+  sort_rule_stats_df(resulting_csv_data)
+
+  res = DataFrame(
+    data=resulting_csv_data,
+    columns=["Nr", "Rule", "English", "Phonemes", "Phones", "All Rules",
+             "Occurrences", "Occurrences Total", "Occurrences (%)"],
+  )
+
+  return res
+
+
+def sort_rule_stats_df(resulting_csv_data: List[Tuple[str, str, str, str, int, int, str]]):
+  ''' Sorts: Nr ASC, Occurrences DESC, Phones ASC'''
+  resulting_csv_data.sort(key=lambda x: (x[0], x[7] - x[6], x[4]))
+
+
+def sort_rules_after_positions(rules: Tuple[Rule, ...]) -> Tuple[Rule, ...]:
   res = tuple(sorted(rules, key=lambda x: tuple(x.positions)))
   return res
 
@@ -335,7 +417,7 @@ def word_stats_to_df(word_stats: List[Tuple[int, WordEntry, Tuple[Rule], int, in
 
   res = DataFrame(
     data=resulting_csv_data,
-    columns=["Word", "English", "Phonemes", "Phones", "Rules",
+    columns=["Nr", "English", "Phonemes", "Phones", "Rules",
              "Occurrences", "Occurrences Total", "Occurrences (%)"],
   )
 
@@ -343,5 +425,5 @@ def word_stats_to_df(word_stats: List[Tuple[int, WordEntry, Tuple[Rule], int, in
 
 
 def sort_word_stats_df(resulting_csv_data: List[Tuple[str, str, str, str, int, int, str]]):
-  ''' Sorts: Word ASC, Occurrences DESC, Rules ASC'''
-  resulting_csv_data.sort(key=lambda x: (x[0], x[6] - x[5], x[4]))
+  ''' Sorts: Word ASC, Occurrences DESC, Phones ASC'''
+  resulting_csv_data.sort(key=lambda x: (x[0], x[6] - x[5], x[3]))

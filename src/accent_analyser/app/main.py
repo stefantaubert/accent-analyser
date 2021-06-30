@@ -4,8 +4,9 @@ from pathlib import Path
 from typing import List
 
 import pandas as pd
-from accent_analyser.core.rule_detection import (df_to_data, get_rules,
-                                                 get_word_stats,
+from accent_analyser.core.rule_detection import (df_to_data, get_rule_stats,
+                                                 get_rules, get_word_stats,
+                                                 rule_stats_to_df,
                                                  word_stats_to_df)
 from text_utils.ipa2symb import IPAExtractionSettings
 
@@ -33,8 +34,14 @@ def print_info(paths: List[Path]):
   words = df_to_data(merged_df, ipa_settings=ipa_settings)
   word_rules = get_rules(words)
   word_stats = get_word_stats(word_rules)
-  out_df = word_stats_to_df(word_stats)
+  word_stats_df = word_stats_to_df(word_stats)
+  rule_stats = get_rule_stats(word_rules)
+  rule_stats_df = rule_stats_to_df(rule_stats)
 
-  output_path = Path("out/res.csv")
+  output_path = Path("out/res_word_stats.csv")
   output_path.parent.mkdir(parents=False, exist_ok=True)
-  out_df.to_csv(output_path, sep="\t", header=True)
+  word_stats_df.to_csv(output_path, sep="\t", header=True)
+
+  output_path = Path("out/res_rule_stats.csv")
+  output_path.parent.mkdir(parents=False, exist_ok=True)
+  rule_stats_df.to_csv(output_path, sep="\t", header=True)
