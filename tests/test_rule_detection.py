@@ -6,12 +6,16 @@ from accent_analyser.core.rule_detection import (Change, ChangeType, Rule,
                                                  cluster_changes,
                                                  get_indicies_as_str,
                                                  get_ndiff_info,
+                                                 get_probabilities,
                                                  get_rule_stats, get_rules,
                                                  get_word_stats,
+                                                 preprocess_text,
+                                                 probabilities_to_df,
                                                  rule_stats_to_df,
                                                  sort_rule_stats_df,
                                                  sort_rules_after_positions,
                                                  sort_word_stats_df,
+                                                 symbols_to_str_with_space,
                                                  word_stats_to_df)
 
 
@@ -549,8 +553,31 @@ def test_get_rule_stats():
   )
 
   assert len(res) == 2
-  assert res[0] == (1, assert_rule1, word1, (rule1,), 4, 5)
-  assert res[1] == (1, assert_rule1, word2, (rule1,), 1, 5)
+  assert res[0] == (0, assert_rule1, word1, (rule1,), 4, 5)
+  assert res[1] == (0, assert_rule1, word2, (rule1,), 1, 5)
+
+
+def test_get_rule_stats__ignores_nothing_rule():
+  word1 = WordEntry(
+    graphemes=["a"],
+    phonemes=["b"],
+    phones=["c"],
+  )
+
+  rule1 = Rule(
+    rule_type=RuleType.NOTHING,
+    from_symbols=[],
+    to_symbols=[],
+    positions=[],
+  )
+
+  word_rules = OrderedDict({
+    word1: [(rule1,), (rule1,), (rule1,), (rule1,)],
+  })
+
+  res = get_rule_stats(word_rules)
+
+  assert len(res) == 0
 
 
 def test_rule_stats_to_df():
@@ -598,3 +625,91 @@ def test_sort_rule_stats_df():
   assert resulting_csv_data[1] == (1, "ruleC", "a", "b", "c", "ruleC", 2, 4, "75.00")
   assert resulting_csv_data[2] == (1, "ruleB", "a", "b", "a", "ruleB", 1, 4, "75.00")
   assert resulting_csv_data[3] == (1, "ruleA", "a", "b", "b", "ruleA", 1, 4, "75.00")
+
+
+def test_preprocess_text():
+  res = preprocess_text(".?!,;-: tEsT.?!,;-:  ")
+  assert res == "test"
+
+
+def test_symbols_to_str_with_space():
+  res = symbols_to_str_with_space(["a", "b"])
+  assert res == "a b"
+
+
+def test_get_probabilities__empty_list():
+  words = []
+
+  res = get_probabilities(words)
+
+  assert len(res) == 0
+
+
+def test_get_probabilities__ignores_all_same():
+  words = [
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["a"]),
+  ]
+
+  res = get_probabilities(words)
+
+  assert len(res) == 0
+
+
+def test_get_probabilities__multiple_phones_are_distinguished():
+  words = [
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["b"]),
+    WordEntry([], ["a"], ["b"]),
+  ]
+
+  res = get_probabilities(words)
+
+  assert len(res) == 2
+  assert res[0] == ("a", "a", 3 / 5)
+  assert res[1] == ("a", "b", 2 / 5)
+
+
+def test_get_probabilities__sorts_desc_after_probs():
+  words = [
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["c"]),
+    WordEntry([], ["a"], ["c"]),
+    WordEntry([], ["a"], ["c"]),
+    WordEntry([], ["a"], ["b"]),
+    WordEntry([], ["a"], ["b"]),
+  ]
+
+  res = get_probabilities(words)
+
+  assert len(res) == 3
+  assert res[0] == ("a", "c", 3 / 6)
+  assert res[1] == ("a", "b", 2 / 6)
+  assert res[2] == ("a", "a", 1 / 6)
+
+
+def test_get_probabilities__adds_spaces():
+  words = [
+    WordEntry([], ["a", "b"], ["a", "c"]),
+    WordEntry([], ["a", "b"], ["b", "c"]),
+  ]
+
+  res = get_probabilities(words)
+
+  assert len(res) == 2
+  assert res[0] == ("a b", "a c", 0.5)
+  assert res[1] == ("a b", "b c", 0.5)
+
+
+def test_probabilities_to_df():
+  probs = [
+    ("a b", "a c", 0.5),
+  ]
+
+  res = probabilities_to_df(probs)
+
+  assert len(res) == 1
+  assert list(res.columns) == ["phonemes", "phones", "probability"]
+  assert list(res.iloc[0]) == ["a b", "a c", 0.5]

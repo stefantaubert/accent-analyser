@@ -287,11 +287,11 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
     lang = get_lang_from_str(row_lang)
     if lang != Language.ENG:
       logger.error(f"Language {row_lang} is not supported!")
-    graphemes = text_to_symbols(row["graphemes"].strip(), lang=Language.ENG,
+    graphemes = text_to_symbols(preprocess_text(row["graphemes"]), lang=Language.ENG,
                                 ipa_settings=None, logger=logger)
-    phonemes = text_to_symbols(row["phonemes"].strip(), lang=Language.IPA,
+    phonemes = text_to_symbols(preprocess_text(row["phonemes"]), lang=Language.IPA,
                                ipa_settings=ipa_settings, logger=logger)
-    phones = text_to_symbols(row["phones"].strip(), lang=Language.IPA,
+    phones = text_to_symbols(preprocess_text(row["phones"]), lang=Language.IPA,
                              ipa_settings=ipa_settings, logger=logger)
 
     entry = WordEntry(
@@ -303,6 +303,12 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
     if not entry.is_empty:
       res.append(entry)
 
+  return res
+
+
+def preprocess_text(text: str) -> str:
+  res = text.strip(".?!,;-: ")
+  res = res.lower()
   return res
 
 
@@ -331,12 +337,55 @@ def get_word_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule, ...]]
   return res
 
 
+def symbols_to_str_with_space(symbols: List[str]) -> str:
+  return " ".join(symbols)
+
+
+def get_probabilities(words: List[WordEntry]) -> List[Tuple[str, str, float]]:
+  tmp = {}
+  for word in words:
+    k = symbols_to_str_with_space(word.phonemes)
+    v = symbols_to_str_with_space(word.phones)
+    if k not in tmp:
+      tmp[k] = []
+    tmp[k].append(v)
+
+  res = []
+  for phoneme_str, phones_strs in tmp.items():
+    c = Counter(phones_strs)
+    total_count = len(phones_strs)
+
+    for phone_str, count in c.items():
+      if count == total_count:
+        continue
+      res.append((
+        phoneme_str,
+        phone_str,
+        count / total_count,
+      ))
+
+  res.sort(key=lambda x: (x[0], 1 - x[2]))
+
+  return res
+
+
+def probabilities_to_df(probs: List[Tuple[str, str, float]]) -> DataFrame:
+  res = DataFrame(
+    data=probs,
+    columns=["phonemes", "phones", "probability"],
+  )
+
+  return res
+
+
 def get_rule_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule, ...]]]) -> List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]]:
   res: List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]] = []
   tmp: OrderedDictType[Rule, List[WordEntry]] = OrderedDict()
   for word_combi, rule_tuples in word_rules.items():
     for rule_tuple in rule_tuples:
       for rule in rule_tuple:
+        if rule.rule_type == RuleType.NOTHING:
+          continue
         rule_copy = deepcopy(rule)
         rule_copy.positions.clear()
         if rule_copy not in tmp:
@@ -344,14 +393,12 @@ def get_rule_stats(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule, ...]]
         tmp[rule_copy].append(word_combi)
 
   for i, (rule, word_combies) in enumerate(tmp.items()):
-    if rule.rule_type == RuleType.NOTHING:
-      continue
     c = Counter(word_combies)
     for word, count in c.items():
       assert len(word_rules[word]) > 0 and len(set(word_rules[word])) == 1
       original_rule_tuple = word_rules[word][0]
       res.append((
-        i + 1,
+        i,
         rule,
         word,
         original_rule_tuple,
