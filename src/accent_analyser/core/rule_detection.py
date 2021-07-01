@@ -1,4 +1,3 @@
-
 import dataclasses
 from collections import Counter, OrderedDict
 from copy import deepcopy
@@ -15,6 +14,8 @@ from ordered_set import OrderedSet
 from pandas import DataFrame
 from text_utils import IPAExtractionSettings, Language, text_to_symbols
 from text_utils.language import get_lang_from_str, is_lang_from_str_supported
+
+PROB_PRECISION_DECIMALS = 6
 
 
 class RuleType(IntEnum):
@@ -342,7 +343,7 @@ def symbols_to_str_with_space(symbols: List[str]) -> str:
   return " ".join(symbols)
 
 
-def get_probabilities(words: List[WordEntry]) -> List[Tuple[str, str, float]]:
+def get_probabilities(words: List[WordEntry]) -> List[Tuple[str, str, int, int]]:
   tmp = {}
   for word in words:
     k = symbols_to_str_with_space(word.phonemes)
@@ -355,36 +356,36 @@ def get_probabilities(words: List[WordEntry]) -> List[Tuple[str, str, float]]:
   for phoneme_str, phones_strs in tmp.items():
     c = Counter(phones_strs)
     total_count = len(phones_strs)
-
     for phone_str, count in c.items():
       if count == total_count:
         continue
       res.append((
         phoneme_str,
         phone_str,
-        count / total_count,
+        count,
+        total_count
       ))
 
-  res.sort(key=lambda x: (x[0], 1 - x[2]))
+  res.sort(key=lambda x: (x[0], x[3] - x[2]))
 
   return res
 
 
-def probabilities_to_df(probs: List[Tuple[str, str, float]]) -> DataFrame:
+def probabilities_to_df(probs: List[Tuple[str, str, int, int]]) -> DataFrame:
   res = DataFrame(
     data=probs,
-    columns=["phonemes", "phones", "probability"],
+    columns=["phonemes", "phones", "prob_num", "prob_denom"],
   )
 
   return res
 
 
-def parse_probabilities_df(df: DataFrame) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]:
+def parse_probabilities_df(df: DataFrame) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int, int]]]:
   res: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]] = dict()
   for _, row in df.iterrows():
     phonemes = tuple(str(row["phonemes"]).split(" "))
     phones = tuple(str(row["phones"]).split(" "))
-    prob = float(row["probability"])
+    prob = int(row["prob_num"]) / int(row["prob_denom"])
     if phonemes not in res:
       res[phonemes] = []
     res[phonemes].append((phones, prob))

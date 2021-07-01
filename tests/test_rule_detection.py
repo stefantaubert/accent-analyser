@@ -673,8 +673,25 @@ def test_get_probabilities__multiple_phones_are_distinguished():
   res = get_probabilities(words)
 
   assert len(res) == 2
-  assert res[0] == ("a", "a", 3 / 5)
-  assert res[1] == ("a", "b", 2 / 5)
+  assert res[0] == ("a", "a", 3, 5)
+  assert res[1] == ("a", "b", 2, 5)
+
+
+def test_get_probabilities__rounds_to_six_dec():
+  words = [
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["a"]),
+    WordEntry([], ["a"], ["b"]),
+  ]
+
+  res = get_probabilities(words)
+
+  assert len(res) == 2
+  assert res[0] == ("a", "a", 5, 6)
+  assert res[1] == ("a", "b", 1, 6)
 
 
 def test_get_probabilities__sorts_desc_after_probs():
@@ -690,9 +707,9 @@ def test_get_probabilities__sorts_desc_after_probs():
   res = get_probabilities(words)
 
   assert len(res) == 3
-  assert res[0] == ("a", "c", 3 / 6)
-  assert res[1] == ("a", "b", 2 / 6)
-  assert res[2] == ("a", "a", 1 / 6)
+  assert res[0] == ("a", "c", 3, 6)
+  assert res[1] == ("a", "b", 2, 6)
+  assert res[2] == ("a", "a", 1, 6)
 
 
 def test_get_probabilities__adds_spaces():
@@ -704,37 +721,37 @@ def test_get_probabilities__adds_spaces():
   res = get_probabilities(words)
 
   assert len(res) == 2
-  assert res[0] == ("a b", "a c", 0.5)
-  assert res[1] == ("a b", "b c", 0.5)
+  assert res[0] == ("a b", "a c", 1, 2)
+  assert res[1] == ("a b", "b c", 1, 2)
 
 
 def test_probabilities_to_df():
   probs = [
-    ("a b", "a c", 0.5),
+    ("a b", "a c", 1, 5),
   ]
 
   res = probabilities_to_df(probs)
 
   assert len(res) == 1
-  assert list(res.columns) == ["phonemes", "phones", "probability"]
-  assert list(res.iloc[0]) == ["a b", "a c", 0.5]
+  assert list(res.columns) == ["phonemes", "phones", "prob_num", "prob_denom"]
+  assert list(res.iloc[0]) == ["a b", "a c", 1, 5]
 
 
 def test_parse_probabilities_df():
   df = DataFrame(
     data=[
-      ("a b", "a c", 0.1),
-      ("a b", "a d", 0.9)
+      ("a b", "a c", 1, 9),
+      ("a b", "a d", 8, 9)
     ],
-    columns=["phonemes", "phones", "probability"],
+    columns=["phonemes", "phones", "prob_num", "prob_denom"],
   )
 
   res = parse_probabilities_df(df)
 
   assert_res = {
     ("a", "b"): [
-      (("a", "c"), 0.1),
-      (("a", "d"), 0.9)
+      (("a", "c"), 1 / 9),
+      (("a", "d"), 8 / 9)
     ]
   }
 
@@ -791,6 +808,19 @@ def test_check_probabilities_are_valid__valid_dict():
   assert res == True
 
 
+def test_check_probabilities_are_valid__probs_equal_one__returns_true():
+  d = {
+    ("a", "b"): [
+      (("a", "c"), 1 / 7),
+      (("a", "d"), 6 / 7)
+    ]
+  }
+
+  res = check_probabilities_are_valid(d)
+
+  assert res == True
+
+
 def test_check_probabilities_are_valid__probs_smaller_one():
   d = {
     ("a", "b"): [
@@ -806,7 +836,7 @@ def test_check_probabilities_are_valid__probs_smaller_one():
 def test_check_probabilities_are_valid__probs_greater_one():
   d = {
     ("a", "b"): [
-      (("a", "c"), 0.11),
+      (("a", "c"), 1.1),
     ]
   }
 
