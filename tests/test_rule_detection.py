@@ -1,3 +1,4 @@
+import random
 from collections import OrderedDict
 
 import numpy as np
@@ -673,8 +674,8 @@ def test_get_probabilities__multiple_phones_are_distinguished():
   res = get_probabilities(words)
 
   assert len(res) == 2
-  assert res[0] == ("a", "a", 3, 5)
-  assert res[1] == ("a", "b", 2, 5)
+  assert res[0] == ("a", "a", 3)
+  assert res[1] == ("a", "b", 2)
 
 
 def test_get_probabilities__rounds_to_six_dec():
@@ -690,8 +691,8 @@ def test_get_probabilities__rounds_to_six_dec():
   res = get_probabilities(words)
 
   assert len(res) == 2
-  assert res[0] == ("a", "a", 5, 6)
-  assert res[1] == ("a", "b", 1, 6)
+  assert res[0] == ("a", "a", 5)
+  assert res[1] == ("a", "b", 1)
 
 
 def test_get_probabilities__sorts_desc_after_probs():
@@ -707,9 +708,9 @@ def test_get_probabilities__sorts_desc_after_probs():
   res = get_probabilities(words)
 
   assert len(res) == 3
-  assert res[0] == ("a", "c", 3, 6)
-  assert res[1] == ("a", "b", 2, 6)
-  assert res[2] == ("a", "a", 1, 6)
+  assert res[0] == ("a", "c", 3)
+  assert res[1] == ("a", "b", 2)
+  assert res[2] == ("a", "a", 1)
 
 
 def test_get_probabilities__adds_spaces():
@@ -721,37 +722,37 @@ def test_get_probabilities__adds_spaces():
   res = get_probabilities(words)
 
   assert len(res) == 2
-  assert res[0] == ("a b", "a c", 1, 2)
-  assert res[1] == ("a b", "b c", 1, 2)
+  assert res[0] == ("a b", "a c", 1)
+  assert res[1] == ("a b", "b c", 1)
 
 
 def test_probabilities_to_df():
   probs = [
-    ("a b", "a c", 1, 5),
+    ("a b", "a c", 1),
   ]
 
   res = probabilities_to_df(probs)
 
   assert len(res) == 1
-  assert list(res.columns) == ["phonemes", "phones", "prob_num", "prob_denom"]
-  assert list(res.iloc[0]) == ["a b", "a c", 1, 5]
+  assert list(res.columns) == ["phonemes", "phones", "occurrence"]
+  assert list(res.iloc[0]) == ["a b", "a c", 1]
 
 
 def test_parse_probabilities_df():
   df = DataFrame(
     data=[
-      ("a b", "a c", 1, 9),
-      ("a b", "a d", 8, 9)
+      ("a b", "a c", 1),
+      ("a b", "a d", 8)
     ],
-    columns=["phonemes", "phones", "prob_num", "prob_denom"],
+    columns=["phonemes", "phones", "occurrence"],
   )
 
   res = parse_probabilities_df(df)
 
   assert_res = {
     ("a", "b"): [
-      (("a", "c"), 1 / 9),
-      (("a", "d"), 8 / 9)
+      (("a", "c"), 1),
+      (("a", "d"), 8)
     ]
   }
 
@@ -763,7 +764,7 @@ def test_replace_with_prob__one_entry():
 
   d = {
     ("a", "b"): [
-      (("a", "c"), 1.0),
+      (("a", "c"), 1),
     ]
   }
 
@@ -776,13 +777,13 @@ def test_replace_with_prob__respects_probabilities():
   symbols = ("a", "b")
   d = {
     ("a", "b"): [
-      (("a", "c"), 0.1),
-      (("a", "d"), 0.9)
+      (("a", "c"), 1),
+      (("a", "d"), 9)
     ]
   }
   res = []
 
-  np.random.seed(0)
+  random.seed(0)
   for _ in range(10000):
     res.append(replace_with_prob(symbols, d))
 
@@ -795,24 +796,11 @@ def test_replace_with_prob__respects_probabilities():
   assert 0.9 - deviation <= amount_of_ad <= 0.9 + deviation
 
 
-def test_check_probabilities_are_valid__valid_dict():
-  d = {
-    ("a", "b"): [
-      (("a", "c"), 0.1),
-      (("a", "d"), 0.9)
-    ]
-  }
-
-  res = check_probabilities_are_valid(d)
-
-  assert res == True
-
-
 def test_check_probabilities_are_valid__probs_equal_one__returns_true():
   d = {
     ("a", "b"): [
-      (("a", "c"), 1 / 7),
-      (("a", "d"), 6 / 7)
+      (("a", "c"), 1),
+      (("a", "d"), 6)
     ]
   }
 
@@ -821,22 +809,10 @@ def test_check_probabilities_are_valid__probs_equal_one__returns_true():
   assert res == True
 
 
-def test_check_probabilities_are_valid__probs_smaller_one():
+def test_check_probabilities_are_valid__probs_zero__returns_false():
   d = {
     ("a", "b"): [
-      (("a", "c"), 0.1),
-    ]
-  }
-
-  res = check_probabilities_are_valid(d)
-
-  assert res == False
-
-
-def test_check_probabilities_are_valid__probs_greater_one():
-  d = {
-    ("a", "b"): [
-      (("a", "c"), 1.1),
+      (("a", "c"), 0),
     ]
   }
 
@@ -848,8 +824,8 @@ def test_check_probabilities_are_valid__probs_greater_one():
 def test_check_probabilities_are_valid__same_phones_multiple_times():
   d = {
     ("a", "b"): [
-      (("a", "c"), 0.1),
-      (("a", "c"), 0.9),
+      (("a", "c"), 1),
+      (("a", "c"), 9),
     ]
   }
 
