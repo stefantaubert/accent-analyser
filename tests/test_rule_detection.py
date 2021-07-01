@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+import numpy as np
 from accent_analyser.core.rule_detection import (Change, ChangeType, Rule,
                                                  RuleType, WordEntry,
                                                  changes_cluster_to_rule,
@@ -9,14 +10,17 @@ from accent_analyser.core.rule_detection import (Change, ChangeType, Rule,
                                                  get_probabilities,
                                                  get_rule_stats, get_rules,
                                                  get_word_stats,
+                                                 parse_probabilities_df,
                                                  preprocess_text,
                                                  probabilities_to_df,
+                                                 replace_with_prob,
                                                  rule_stats_to_df,
                                                  sort_rule_stats_df,
                                                  sort_rules_after_positions,
                                                  sort_word_stats_df,
                                                  symbols_to_str_with_space,
                                                  word_stats_to_df)
+from pandas.core.frame import DataFrame
 
 
 def test_get_rules__nothing():
@@ -713,3 +717,61 @@ def test_probabilities_to_df():
   assert len(res) == 1
   assert list(res.columns) == ["phonemes", "phones", "probability"]
   assert list(res.iloc[0]) == ["a b", "a c", 0.5]
+
+
+def test_parse_probabilities_df():
+  df = DataFrame(
+    data=[
+      ("a b", "a c", 0.1),
+      ("a b", "a d", 0.9)
+    ],
+    columns=["phonemes", "phones", "probability"],
+  )
+
+  res = parse_probabilities_df(df)
+
+  assert_res = {
+    ("a", "b"): [
+      (("a", "c"), 0.1),
+      (("a", "d"), 0.9)
+    ]
+  }
+
+  assert res == assert_res
+
+
+def test_replace_with_prob__one_entry():
+  symbols = ("a", "b")
+
+  d = {
+    ("a", "b"): [
+      (("a", "c"), 1.0),
+    ]
+  }
+
+  res = replace_with_prob(symbols, d)
+
+  assert res == ("a", "c")
+
+
+def test_replace_with_prob__respects_probabilities():
+  symbols = ("a", "b")
+  d = {
+    ("a", "b"): [
+      (("a", "c"), 0.1),
+      (("a", "d"), 0.9)
+    ]
+  }
+  res = []
+
+  np.random.seed(0)
+  for _ in range(10000):
+    res.append(replace_with_prob(symbols, d))
+
+  amount_of_ac = len([x for x in res if x == ("a", "c")]) / len(res)
+  amount_of_ad = len([x for x in res if x == ("a", "d")]) / len(res)
+
+  deviation = 0.005
+  assert amount_of_ac + amount_of_ad == 1
+  assert 0.1 - deviation <= amount_of_ac <= 0.1 + deviation
+  assert 0.9 - deviation <= amount_of_ad <= 0.9 + deviation

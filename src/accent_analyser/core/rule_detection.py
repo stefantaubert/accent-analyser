@@ -10,6 +10,7 @@ from typing import Dict, Iterable, List, Optional
 from typing import OrderedDict as OrderedDictType
 from typing import Tuple
 
+import numpy as np
 from ordered_set import OrderedSet
 from pandas import DataFrame
 from text_utils import IPAExtractionSettings, Language, text_to_symbols
@@ -375,6 +376,26 @@ def probabilities_to_df(probs: List[Tuple[str, str, float]]) -> DataFrame:
     columns=["phonemes", "phones", "probability"],
   )
 
+  return res
+
+
+def parse_probabilities_df(df: DataFrame) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]:
+  res: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]] = dict()
+  for i, row in df.iterrows():
+    phonemes = tuple(str(row["phonemes"]).split(" "))
+    phones = tuple(str(row["phones"]).split(" "))
+    prob = float(row["probability"])
+    if phonemes not in res:
+      res[phonemes] = []
+    res[phonemes].append((phones, prob))
+  return res
+
+
+def replace_with_prob(symbols: Tuple[str, ...], d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]) -> Tuple[str, ...]:
+  assert symbols in d
+  replace_with, replace_with_prob = list(zip(*d[symbols]))
+  res_idx = np.random.choice(len(replace_with), 1, p=replace_with_prob)[0]
+  res = replace_with[res_idx]
   return res
 
 
