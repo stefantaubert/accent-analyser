@@ -381,7 +381,7 @@ def probabilities_to_df(probs: List[Tuple[str, str, float]]) -> DataFrame:
 
 def parse_probabilities_df(df: DataFrame) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]:
   res: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]] = dict()
-  for i, row in df.iterrows():
+  for _, row in df.iterrows():
     phonemes = tuple(str(row["phonemes"]).split(" "))
     phones = tuple(str(row["phones"]).split(" "))
     prob = float(row["probability"])
@@ -389,6 +389,24 @@ def parse_probabilities_df(df: DataFrame) -> Dict[Tuple[str, ...], List[Tuple[Tu
       res[phonemes] = []
     res[phonemes].append((phones, prob))
   return res
+
+
+def check_probabilities_are_valid(d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]) -> bool:
+  logger = getLogger(__name__)
+  is_valid = True
+  for k, v in d.items():
+    replace_with, replace_with_prob = list(zip(*v))
+    sum_v = sum(replace_with_prob)
+    set_replace_with = set(replace_with)
+    k_str = " ".join(k)
+    if sum_v != 1.0:
+      is_valid = False
+      logger.error(
+        f"The sum of all probabilities for phoneme {k_str} is not one (instead it is {sum_v})!")
+    if len(replace_with) != len(set_replace_with):
+      is_valid = False
+      logger.error(f"Some phones are defined multiple times inside phoneme {k_str}!")
+  return is_valid
 
 
 def replace_with_prob(symbols: Tuple[str, ...], d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]) -> Tuple[str, ...]:

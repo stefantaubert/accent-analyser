@@ -1,16 +1,24 @@
 
 from logging import Logger, getLogger
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 
 import pandas as pd
-from accent_analyser.core.rule_detection import (df_to_data, get_probabilities,
+from accent_analyser.core.rule_detection import (check_probabilities_are_valid,
+                                                 df_to_data, get_probabilities,
                                                  get_rule_stats, get_rules,
                                                  get_word_stats,
+                                                 parse_probabilities_df,
                                                  probabilities_to_df,
                                                  rule_stats_to_df,
                                                  word_stats_to_df)
 from text_utils.ipa2symb import IPAExtractionSettings
+
+
+def load_probabilities(path: Path) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]:
+  df = pd.read_csv(path, sep="\t")
+  res = parse_probabilities_df(df)
+  return res
 
 
 def print_info(paths: List[Path]):

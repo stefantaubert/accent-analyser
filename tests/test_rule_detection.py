@@ -4,6 +4,7 @@ import numpy as np
 from accent_analyser.core.rule_detection import (Change, ChangeType, Rule,
                                                  RuleType, WordEntry,
                                                  changes_cluster_to_rule,
+                                                 check_probabilities_are_valid,
                                                  cluster_changes,
                                                  get_indicies_as_str,
                                                  get_ndiff_info,
@@ -775,3 +776,53 @@ def test_replace_with_prob__respects_probabilities():
   assert amount_of_ac + amount_of_ad == 1
   assert 0.1 - deviation <= amount_of_ac <= 0.1 + deviation
   assert 0.9 - deviation <= amount_of_ad <= 0.9 + deviation
+
+
+def test_check_probabilities_are_valid__valid_dict():
+  d = {
+    ("a", "b"): [
+      (("a", "c"), 0.1),
+      (("a", "d"), 0.9)
+    ]
+  }
+
+  res = check_probabilities_are_valid(d)
+
+  assert res == True
+
+
+def test_check_probabilities_are_valid__probs_smaller_one():
+  d = {
+    ("a", "b"): [
+      (("a", "c"), 0.1),
+    ]
+  }
+
+  res = check_probabilities_are_valid(d)
+
+  assert res == False
+
+
+def test_check_probabilities_are_valid__probs_greater_one():
+  d = {
+    ("a", "b"): [
+      (("a", "c"), 0.11),
+    ]
+  }
+
+  res = check_probabilities_are_valid(d)
+
+  assert res == False
+
+
+def test_check_probabilities_are_valid__same_phones_multiple_times():
+  d = {
+    ("a", "b"): [
+      (("a", "c"), 0.1),
+      (("a", "c"), 0.9),
+    ]
+  }
+
+  res = check_probabilities_are_valid(d)
+
+  assert res == False
