@@ -13,10 +13,12 @@ from typing import Tuple
 import numpy as np
 from ordered_set import OrderedSet
 from pandas import DataFrame
-from text_utils import IPAExtractionSettings, Language, text_to_symbols
+from text_utils import (IPAExtractionSettings, Language, strip_word,
+                        symbols_to_lower, text_to_symbols)
 from text_utils.language import get_lang_from_str, is_lang_from_str_supported
 
 PROB_PRECISION_DECIMALS = 6
+STRIP_SYMBOLS = list(".?!,;-: ")
 
 
 class RuleType(IntEnum):
@@ -134,7 +136,7 @@ def rule_to_str(rule_type: RuleType, from_str: List[str], to_str: List[str]):
   assert False
 
 
-@ dataclass()  # (eq=True, frozen=True)
+@dataclass()  # (eq=True, frozen=True)
 class Change():
   change: str
   change_type: ChangeType
@@ -279,6 +281,8 @@ def print_rule(word: WordEntry, rule: Rule) -> None:
     assert False
 
 
+
+
 def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[WordEntry]:
   res = []
   logger = getLogger(__name__)
@@ -290,12 +294,16 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
     lang = get_lang_from_str(row_lang)
     if lang != Language.ENG:
       logger.error(f"Language {row_lang} is not supported!")
-    graphemes = text_to_symbols(preprocess_text(row["graphemes"]), lang=Language.ENG,
+    graphemes = text_to_symbols(str(row["graphemes"]), lang=Language.ENG,
                                 ipa_settings=None, logger=logger)
-    phonemes = text_to_symbols(preprocess_text(row["phonemes"]), lang=Language.IPA,
+    phonemes = text_to_symbols(str(row["phonemes"]), lang=Language.IPA,
                                ipa_settings=ipa_settings, logger=logger)
-    phones = text_to_symbols(preprocess_text(row["phones"]), lang=Language.IPA,
+    phones = text_to_symbols(str(row["phones"]), lang=Language.IPA,
                              ipa_settings=ipa_settings, logger=logger)
+
+    graphemes = strip_word(symbols_to_lower(graphemes), symbols=STRIP_SYMBOLS)
+    phonemes = strip_word(phonemes, symbols=STRIP_SYMBOLS)
+    phones = strip_word(phones, symbols=STRIP_SYMBOLS)
 
     entry = WordEntry(
         graphemes=graphemes,
@@ -306,12 +314,6 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
     if not entry.is_empty:
       res.append(entry)
 
-  return res
-
-
-def preprocess_text(text: str) -> str:
-  res = text.strip(".?!,;-: ")
-  res = res.lower()
   return res
 
 

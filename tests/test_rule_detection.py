@@ -6,14 +6,13 @@ from accent_analyser.core.rule_detection import (Change, ChangeType, Rule,
                                                  RuleType, WordEntry,
                                                  changes_cluster_to_rule,
                                                  check_probabilities_are_valid,
-                                                 cluster_changes,
+                                                 cluster_changes, df_to_data,
                                                  get_indicies_as_str,
                                                  get_ndiff_info,
                                                  get_probabilities,
                                                  get_rule_stats, get_rules,
                                                  get_word_stats,
                                                  parse_probabilities_df,
-                                                 preprocess_text,
                                                  probabilities_to_df,
                                                  replace_with_prob,
                                                  rule_stats_to_df,
@@ -23,6 +22,8 @@ from accent_analyser.core.rule_detection import (Change, ChangeType, Rule,
                                                  symbols_to_str_with_space,
                                                  word_stats_to_df)
 from pandas.core.frame import DataFrame
+from text_utils import Language
+from text_utils.ipa2symb import IPAExtractionSettings
 
 
 def test_get_rules__nothing():
@@ -633,9 +634,21 @@ def test_sort_rule_stats_df():
   assert resulting_csv_data[3] == (1, "ruleA", "a", "b", "b", "ruleA", 1, 4, "75.00")
 
 
-def test_preprocess_text():
-  res = preprocess_text(".?!,;-: tEsT.?!,;-:  ")
-  assert res == "test"
+def test_df_to_data():
+  df = DataFrame(
+    data=[
+      ("A ", "a ", "a ", "ipa"),
+    ],
+    columns=["graphemes", "phonemes", "phones", "lang"],
+  )
+
+  res = df_to_data(df, ipa_settings=IPAExtractionSettings(True, True, "_"))
+
+  assert res == [WordEntry(
+    graphemes=["a"],
+    phonemes=["a"],
+    phones=["a"],
+  )]
 
 
 def test_symbols_to_str_with_space():
