@@ -77,7 +77,7 @@ def get_indicies_as_str(indicies: List[int]):
     return f"{indicies[0]}-{indicies[-1]}"
 
 
-@dataclass()  # (eq=True, frozen=True)
+@dataclass()
 class Rule():
   rule_type: RuleType = RuleType.NOTHING
   positions: List[int] = field(default_factory=list)
@@ -279,8 +279,6 @@ def print_rule(word: WordEntry, rule: Rule) -> None:
       f"Nothing changed in word \"{word.phonemes_str}\" ({word.graphemes_str}).")
   else:
     assert False
-
-
 
 
 def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[WordEntry]:
