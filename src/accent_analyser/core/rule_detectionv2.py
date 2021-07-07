@@ -100,20 +100,29 @@ class Rule():
 WordRules = OrderedDictType[Positions, Rule]
 
 
-def rule_to_str(rule: Rule, positions: Positions):
-  positions_str = get_indicies_as_str(positions)
+UNCHANGED_RULE = "Unchanged"
+
+
+def rule_to_str(rule: Optional[Rule], positions: Optional[Positions]):
+  if rule is None:
+    return UNCHANGED_RULE
+
+  positions_str = ""
+  if positions is None:
+    positions_str = f";{get_indicies_as_str(positions)}"
+
   if rule.rule_type == RuleType.OMISSION:
-    return f"O({rule.from_str};{positions_str})"
+    return f"O({rule.from_str}{positions_str})"
   if rule.rule_type == RuleType.INSERTION:
-    return f"I({rule.to_str};{positions_str})"
+    return f"I({rule.to_str}{positions_str})"
   if rule.rule_type == RuleType.SUBSTITUTION:
-    return f"S({rule.from_str};{rule.to_str};{positions_str})"
+    return f"S({rule.from_str};{rule.to_str}{positions_str})"
   assert False
 
 
 def rules_to_str(rules: WordRules) -> str:
   if len(rules) == 0:
-    return "Unchanged"
+    return UNCHANGED_RULE
   tmp = []
   for positions, rule in rules.items():
     rule_str = rule_to_str(rule, positions)
@@ -126,6 +135,10 @@ def rules_to_str(rules: WordRules) -> str:
 class Change():
   change: str
   change_type: ChangeType
+
+
+PhoneOccurrences = OrderedDictType[WordEntry, int]
+PhonemeOccurrences = OrderedDictType[Tuple[Graphemes, Phonemes], int]
 
 
 def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[WordEntry]:
@@ -248,6 +261,7 @@ def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Tuple[Posi
       positions = [x - len(to_positions) for x in from_positions]
 
     assert len(positions) == len(from_symbols)
+
   rule = Rule(
     from_symbols=tuple(from_symbols),
     to_symbols=tuple(to_symbols),
@@ -273,8 +287,8 @@ def clustered_changes_to_rules(clustered_changes: List[OrderedDictType[int, Chan
   return rules
 
 
-def categorize_words(words: List[WordEntry]) -> OrderedDictType[WordEntry, int]:
-  words_dict: OrderedDictType[WordEntry, int] = OrderedDict()
+def get_phone_occurrences(words: List[WordEntry]) -> PhoneOccurrences:
+  words_dict: PhoneOccurrences = OrderedDict()
   for w in words:
     if w not in words_dict:
       words_dict[w] = 0
@@ -282,8 +296,8 @@ def categorize_words(words: List[WordEntry]) -> OrderedDictType[WordEntry, int]:
   return words_dict
 
 
-def categorize_phonemes(words: List[WordEntry]) -> OrderedDictType[Tuple[Graphemes, Phonemes], int]:
-  result: OrderedDictType[Tuple[Graphemes, Phonemes], int] = OrderedDict()
+def get_phoneme_occurrences(words: List[WordEntry]) -> PhonemeOccurrences:
+  result: PhonemeOccurrences = OrderedDict()
   for word_combi in words:
     k = (word_combi.graphemes, word_combi.phonemes)
     if k not in result:
@@ -320,7 +334,7 @@ def print_rule(word: WordEntry, rule: Rule) -> None:
 WordStatsEntry = Tuple[int, WordEntry, WordRules, int, int]
 
 
-def get_word_stats(word_rules: OrderedDictType[WordEntry, WordRules], phone_occurrences: OrderedDictType[WordEntry, int], phoneme_occurrences: OrderedDictType[Tuple[Graphemes, Phonemes], int]) -> List[WordStatsEntry]:
+def get_word_stats(word_rules: OrderedDictType[WordEntry, WordRules], phone_occurrences: PhoneOccurrences, phoneme_occurrences: PhonemeOccurrences) -> List[WordStatsEntry]:
   res: List[WordStatsEntry] = []
   for i, (word, rule) in enumerate(word_rules.items()):
     total_occ = phoneme_occurrences[(word.graphemes, word.phonemes)]
@@ -366,72 +380,58 @@ def sort_word_stats_df(resulting_csv_data: List[Tuple[str, str, str, str, int, i
   resulting_csv_data.sort(key=lambda x: (x[0], x[6] - x[5], x[3]))
 
 
-def get_rule_stats(word_rules: OrderedDictType[WordEntry, WordRules]) -> List[Tuple[int, Rule, WordEntry, WordRules, int, int]]:
-  res: List[Tuple[int, Rule, WordEntry, WordRules, int, int]] = []
-  all_rules = set(word_rules.values())
+def word_rules_to_rules_dict(word_rules: OrderedDictType[WordEntry, WordRules]) -> OrderedDictType[Rule, List[WordEntry]]:
+  all_rules: Set[Rule] = {x for y in word_rules.values() for x in y.values()}
+  words_to_rules: OrderedDictType[Rule, List[WordEntry]] = dict()
 
-  tmp: OrderedDictType[Rule, List[WordEntry]] = OrderedDict()
+  for rule in all_rules:
+    for word, rules in word_rules.items():
+      if rule in rules.values():
+        if rule not in words_to_rules:
+          words_to_rules[rule] = []
+        words_to_rules[rule].append(word)
 
-  for i, (word, rules) in enumerate(word_rules.items()):
+  words_to_rules[None] = []
+
+  for word, rules in word_rules.items():
     if len(rules) == 0:
-      pass
-    for _, rule in rules.items():
-      if rule not in tmp:
-        tmp[rule] = []
-      tmp[rule].append(word)
+      words_to_rules[None].append(word)
 
-  for i, (rule, word_combies) in enumerate(tmp.items()):
-    c = Counter(word_combies)
-    for word, count in c.items():
-      original_rule_tuple = word_rules[word]
+  return words_to_rules
+
+
+RuleStatsEntry = Tuple[int, Rule, WordEntry, WordRules, int, int]
+
+
+def get_rule_stats(word_rules: OrderedDictType[WordEntry, WordRules], phone_occurrences: PhoneOccurrences, phoneme_occurrences: PhonemeOccurrences) -> List[RuleStatsEntry]:
+  res: List[Tuple[int, Rule, WordEntry, WordRules, int, int]] = []
+  words_to_rules = word_rules_to_rules_dict(word_rules)
+
+  for i, (rule, words) in enumerate(words_to_rules.items()):
+    for word in words:
+      total_occ = phoneme_occurrences[(word.graphemes, word.phonemes)]
+      phone_occ = phone_occurrences[word]
+      word_rules = word_rules[word]
       res.append((
         i,
         rule,
         word,
-        original_rule_tuple,
-        count,
-        len(word_combies),
+        word_rules,
+        phone_occ,
+        total_occ,
       ))
+
   return res
 
 
-def get_rule_stats_old(word_rules: OrderedDictType[WordEntry, List[Tuple[Rule, ...]]]) -> List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]]:
-  res: List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]] = []
-  tmp: OrderedDictType[Rule, List[WordEntry]] = OrderedDict()
-  for word_combi, rule_tuples in word_rules.items():
-    for rule_tuple in rule_tuples:
-      for rule in rule_tuple:
-        if rule.rule_type == RuleType.NOTHING:
-          continue
-        rule_copy = deepcopy(rule)
-        rule_copy.positions.clear()
-        if rule_copy not in tmp:
-          tmp[rule_copy] = []
-        tmp[rule_copy].append(word_combi)
-
-  for i, (rule, word_combies) in enumerate(tmp.items()):
-    c = Counter(word_combies)
-    for word, count in c.items():
-      assert len(word_rules[word]) > 0 and len(set(word_rules[word])) == 1
-      original_rule_tuple = word_rules[word][0]
-      res.append((
-        i,
-        rule,
-        word,
-        original_rule_tuple,
-        count,
-        len(word_combies),
-      ))
-  return res
-
-
-def rule_stats_to_df(word_stats: List[Tuple[int, Rule, WordEntry, Tuple[Rule, ...], int, int]]) -> DataFrame:
+def rule_stats_to_df(word_stats: List[RuleStatsEntry]) -> DataFrame:
   resulting_csv_data = []
-  for i, rule, word_entry, orig_rule_tuple, count, total_count in word_stats:
-    rules_str = ', '.join([str(rule) for rule in sort_rules_after_positions(orig_rule_tuple)])
+  for i, rule, word_entry, word_rules, count, total_count in word_stats:
+    rule_str = rule_to_str(rule, None)
+    rules_str = rules_to_str(word_rules)
     resulting_csv_data.append((
       i + 1,
-      rule.str_no_pos,
+      rule_str,
       word_entry.graphemes_str,
       word_entry.phonemes_str,
       word_entry.phones_str,
@@ -456,10 +456,6 @@ def sort_rule_stats_df(resulting_csv_data: List[Tuple[str, str, str, str, int, i
   ''' Sorts: Nr ASC, Occurrences DESC, Phones ASC'''
   resulting_csv_data.sort(key=lambda x: (x[0], x[7] - x[6], x[4]))
 
-
-def sort_rules_after_positions(rules: Tuple[Rule, ...]) -> Tuple[Rule, ...]:
-  res = tuple(sorted(rules, key=lambda x: tuple(x.positions)))
-  return res
 
 
 def symbols_to_str_with_space(symbols: List[str]) -> str:
@@ -518,10 +514,10 @@ def check_probabilities_are_valid(d: Dict[Tuple[str, ...], List[Tuple[Tuple[str,
   logger = getLogger(__name__)
   is_valid = True
   for k, v in d.items():
-    replace_with, replace_with_prob=list(zip(*v))
-    set_replace_with=set(replace_with)
-    k_str=" ".join(k)
-    any_prob_is_zero=any(x == 0 for x in replace_with_prob)
+    replace_with, replace_with_prob = list(zip(*v))
+    set_replace_with = set(replace_with)
+    k_str = " ".join(k)
+    any_prob_is_zero = any(x == 0 for x in replace_with_prob)
     if any_prob_is_zero:
       is_valid = False
       logger.error(
@@ -534,8 +530,8 @@ def check_probabilities_are_valid(d: Dict[Tuple[str, ...], List[Tuple[Tuple[str,
 
 def replace_with_prob(symbols: Tuple[str, ...], d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]]) -> Tuple[str, ...]:
   assert symbols in d
-  replace_with, replace_with_prob=list(zip(*d[symbols]))
-  res=choices(replace_with, weights=replace_with_prob, k=1)[0]
+  replace_with, replace_with_prob = list(zip(*d[symbols]))
+  res = choices(replace_with, weights=replace_with_prob, k=1)[0]
   # res_idx = np.random.choice(len(replace_with), 1, p=replace_with_prob)[0]
   # res = replace_with[res_idx]
   return res
