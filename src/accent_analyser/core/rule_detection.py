@@ -99,15 +99,7 @@ class Rule():
 
   @property
   def str_no_pos(self) -> str:
-    if self.rule_type == RuleType.OMISSION:
-      return f"O({self.from_str})"
-    if self.rule_type == RuleType.INSERTION:
-      return f"I({self.to_str})"
-    if self.rule_type == RuleType.SUBSTITUTION:
-      return f"S({self.from_str};{self.to_str})"
-    if self.rule_type == RuleType.NOTHING:
-      return "Unchanged"
-    assert False
+    return rule_to_str(self.rule_type, self.from_symbols, self.to_symbols)
 
   def __str__(self) -> str:
     if self.rule_type == RuleType.OMISSION:
@@ -124,13 +116,13 @@ class Rule():
     return hash((tuple(self.from_symbols), tuple(self.to_symbols), tuple(self.positions), self.rule_type))
 
 
-def rule_to_str(rule_type: RuleType, from_str: List[str], to_str: List[str]):
+def rule_to_str(rule_type: RuleType, from_symbols: List[str], to_symbols: List[str]):
   if rule_type == RuleType.OMISSION:
-    return f"O({from_str})"
+    return f"O({from_symbols})"
   if rule_type == RuleType.INSERTION:
-    return f"I({to_str})"
+    return f"I({to_symbols})"
   if rule_type == RuleType.SUBSTITUTION:
-    return f"S({from_str};{to_str})"
+    return f"S({from_symbols};{to_symbols})"
   if rule_type == RuleType.NOTHING:
     return "Unchanged"
   assert False
