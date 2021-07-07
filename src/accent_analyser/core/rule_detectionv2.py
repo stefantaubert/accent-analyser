@@ -162,9 +162,9 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
     phones = strip_word(phones, symbols=STRIP_SYMBOLS)
 
     entry = WordEntry(
-        graphemes=graphemes,
-        phonemes=phonemes,
-        phones=phones,
+        graphemes=tuple(graphemes),
+        phonemes=tuple(phonemes),
+        phones=tuple(phones),
     )
 
     if not entry.is_empty:

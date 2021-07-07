@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from accent_analyser.app.main import load_probabilities, print_info
-from accent_analyser.core.rule_detection import replace_with_prob
+from accent_analyser.core.word_probabilities import replace_with_prob
 
 if __name__ == "__main__":
   print_info(paths=[

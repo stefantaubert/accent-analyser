@@ -21,18 +21,17 @@ from text_utils.ipa2symb import IPAExtractionSettings
 def test_df_to_data():
   df = DataFrame(
     data=[
-      ("A ", "a ", "a ", "ipa"),
+      ("A ", "b ", "c ", "ipa"),
     ],
     columns=["graphemes", "phonemes", "phones", "lang"],
   )
 
   res = df_to_data(df, ipa_settings=IPAExtractionSettings(True, True, "_"))
 
-  assert res == [WordEntry(
-    graphemes=["a"],
-    phonemes=["a"],
-    phones=["a"],
-  )]
+  assert len(res) == 1
+  assert res[0].graphemes == ("a",)
+  assert res[0].phonemes == ("b",)
+  assert res[0].phones == ("c",)
 
 
 def test_rule_hash__same_content_is_equal():
