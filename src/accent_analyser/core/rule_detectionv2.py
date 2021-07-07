@@ -19,6 +19,7 @@ from text_utils.language import get_lang_from_str, is_lang_from_str_supported
 
 PROB_PRECISION_DECIMALS = 6
 STRIP_SYMBOLS = list(".?!,;-: ")
+UNCHANGED_RULE = "Unchanged"
 
 Graphemes = Tuple[str, ...]
 Phonemes = Tuple[str, ...]
@@ -46,7 +47,7 @@ class ChangeType(IntEnum):
   REMOVE = 1
 
 
-@dataclass  # (eq=True, frozen=True)
+@dataclass()
 class WordEntry:
   graphemes: Graphemes
   phonemes: Phonemes
@@ -72,13 +73,6 @@ class WordEntry:
     return hash((self.graphemes, self.phonemes, self.phones))
 
 
-def get_indicies_as_str(indicies: Tuple[int, ...]):
-  if len(indicies) <= 2:
-    return ','.join(list(map(str, indicies)))
-  else:
-    return f"{indicies[0]}-{indicies[-1]}"
-
-
 @dataclass()
 class Rule():
   rule_type: RuleType
@@ -98,9 +92,15 @@ class Rule():
 
 
 WordRules = OrderedDictType[Positions, Rule]
+PhoneOccurrences = OrderedDictType[WordEntry, int]
+PhonemeOccurrences = OrderedDictType[Tuple[Graphemes, Phonemes], int]
 
 
-UNCHANGED_RULE = "Unchanged"
+def get_indicies_as_str(indicies: Tuple[int, ...]):
+  if len(indicies) <= 2:
+    return ','.join(list(map(str, indicies)))
+  else:
+    return f"{indicies[0]}-{indicies[-1]}"
 
 
 def rule_to_str(rule: Optional[Rule], positions: Optional[Positions]):
@@ -135,10 +135,6 @@ def rules_to_str(rules: WordRules) -> str:
 class Change():
   change: str
   change_type: ChangeType
-
-
-PhoneOccurrences = OrderedDictType[WordEntry, int]
-PhonemeOccurrences = OrderedDictType[Tuple[Graphemes, Phonemes], int]
 
 
 def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[WordEntry]:
@@ -307,6 +303,7 @@ def get_phoneme_occurrences(words: List[WordEntry]) -> PhonemeOccurrences:
       result[k] = 0
     result[k] += 1
   return result
+
 
 def get_rules_from_words(words: OrderedSet[WordEntry]) -> OrderedDictType[WordEntry, WordRules]:
   rules_dict: OrderedDictType[WordEntry, WordRules] = OrderedDict()

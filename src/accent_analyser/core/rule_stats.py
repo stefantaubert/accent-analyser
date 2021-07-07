@@ -1,25 +1,12 @@
-import dataclasses
-from collections import Counter, OrderedDict
-from copy import deepcopy
-from dataclasses import dataclass, field
-from difflib import ndiff
-from enum import IntEnum
-from logging import StrFormatStyle, getLogger
-from random import choices
-from typing import Dict, Iterable, List, Optional
+from typing import List
 from typing import OrderedDict as OrderedDictType
 from typing import Set, Tuple
 
-import numpy as np
 from accent_analyser.core.rule_detectionv2 import (PhonemeOccurrences,
                                                    PhoneOccurrences, Rule,
                                                    WordEntry, WordRules,
                                                    rule_to_str, rules_to_str)
-from ordered_set import OrderedSet
 from pandas import DataFrame
-from text_utils import (IPAExtractionSettings, Language, strip_word,
-                        symbols_to_lower, text_to_symbols)
-from text_utils.language import get_lang_from_str, is_lang_from_str_supported
 
 RuleStatsEntry = Tuple[int, Rule, WordEntry, WordRules, int, int]
 
