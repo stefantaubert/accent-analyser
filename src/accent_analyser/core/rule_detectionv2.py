@@ -272,6 +272,7 @@ def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Tuple[Posi
 
 
 def clustered_changes_to_rules(clustered_changes: List[OrderedDictType[int, Change]]) -> WordRules:
+  '''todo test'''
   rules: WordRules = dict()
   if len(clustered_changes) > 0:
     tmp = []
@@ -288,6 +289,7 @@ def clustered_changes_to_rules(clustered_changes: List[OrderedDictType[int, Chan
 
 
 def get_phone_occurrences(words: List[WordEntry]) -> PhoneOccurrences:
+  '''todo test'''
   words_dict: PhoneOccurrences = OrderedDict()
   for w in words:
     if w not in words_dict:
@@ -297,6 +299,7 @@ def get_phone_occurrences(words: List[WordEntry]) -> PhoneOccurrences:
 
 
 def get_phoneme_occurrences(words: List[WordEntry]) -> PhonemeOccurrences:
+  '''todo test'''
   result: PhonemeOccurrences = OrderedDict()
   for word_combi in words:
     k = (word_combi.graphemes, word_combi.phonemes)
@@ -304,7 +307,6 @@ def get_phoneme_occurrences(words: List[WordEntry]) -> PhonemeOccurrences:
       result[k] = 0
     result[k] += 1
   return result
-
 
 def get_rules_from_words(words: OrderedSet[WordEntry]) -> OrderedDictType[WordEntry, WordRules]:
   rules_dict: OrderedDictType[WordEntry, WordRules] = OrderedDict()
@@ -316,222 +318,16 @@ def get_rules_from_words(words: OrderedSet[WordEntry]) -> OrderedDictType[WordEn
   return rules_dict
 
 
-def print_rule(word: WordEntry, rule: Rule) -> None:
-  logger = getLogger(__name__)
-  if rule.rule_type == RuleType.INSERTION:
-    logger.info(
-      f"Insertion of \"{rule.to_str}\" in word \"{word.phonemes_str}\" ({word.graphemes_str}) on position(s) {rule.positions_str} -> \"{word.phones_str}\".")
-  elif rule.rule_type == RuleType.OMISSION:
-    logger.info(
-      f"Omission of \"{rule.from_str}\" in word \"{word.phonemes_str}\" ({word.graphemes_str}) on position(s) {rule.positions_str} -> \"{word.phones_str}\".")
-  elif rule.rule_type == RuleType.SUBSTITUTION:
-    logger.info(
-      f"Substitution of \"{rule.from_str}\" to \"{rule.to_str}\" in word \"{word.phonemes_str}\" ({word.graphemes_str}) on position(s) {rule.positions_str} -> \"{word.phones_str}\".")
-  else:
-    assert False
-
-
-WordStatsEntry = Tuple[int, WordEntry, WordRules, int, int]
-
-
-def get_word_stats(word_rules: OrderedDictType[WordEntry, WordRules], phone_occurrences: PhoneOccurrences, phoneme_occurrences: PhonemeOccurrences) -> List[WordStatsEntry]:
-  res: List[WordStatsEntry] = []
-  for i, (word, rule) in enumerate(word_rules.items()):
-    total_occ = phoneme_occurrences[(word.graphemes, word.phonemes)]
-    phone_occ = phone_occurrences[word]
-    res.append((
-      i,
-      word,
-      rule,
-      phone_occ,
-      total_occ,
-    ))
-  return res
-
-
-def word_stats_to_df(word_stats: List[WordStatsEntry]) -> DataFrame:
-  resulting_csv_data = []
-  for i, word, rules, count, total_count in word_stats:
-    rules_str = rules_to_str(rules)
-    resulting_csv_data.append((
-      i + 1,
-      word.graphemes_str,
-      word.phonemes_str,
-      word.phones_str,
-      rules_str,
-      count,
-      total_count,
-      f"{count/total_count*100:.2f}",
-    ))
-
-  sort_word_stats_df(resulting_csv_data)
-
-  res = DataFrame(
-    data=resulting_csv_data,
-    columns=["Nr", "English", "Phonemes", "Phones", "Rules",
-             "Occurrences", "Occurrences Total", "Occurrences (%)"],
-  )
-
-  return res
-
-
-def sort_word_stats_df(resulting_csv_data: List[Tuple[str, str, str, str, int, int, str]]):
-  ''' Sorts: Word ASC, Occurrences DESC, Phones ASC'''
-  resulting_csv_data.sort(key=lambda x: (x[0], x[6] - x[5], x[3]))
-
-
-def word_rules_to_rules_dict(word_rules: OrderedDictType[WordEntry, WordRules]) -> OrderedDictType[Rule, List[WordEntry]]:
-  all_rules: Set[Rule] = {x for y in word_rules.values() for x in y.values()}
-  words_to_rules: OrderedDictType[Rule, List[WordEntry]] = dict()
-
-  for rule in all_rules:
-    for word, rules in word_rules.items():
-      if rule in rules.values():
-        if rule not in words_to_rules:
-          words_to_rules[rule] = []
-        words_to_rules[rule].append(word)
-
-  words_to_rules[None] = []
-
-  for word, rules in word_rules.items():
-    if len(rules) == 0:
-      words_to_rules[None].append(word)
-
-  return words_to_rules
-
-
-RuleStatsEntry = Tuple[int, Rule, WordEntry, WordRules, int, int]
-
-
-def get_rule_stats(word_rules: OrderedDictType[WordEntry, WordRules], phone_occurrences: PhoneOccurrences, phoneme_occurrences: PhonemeOccurrences) -> List[RuleStatsEntry]:
-  res: List[Tuple[int, Rule, WordEntry, WordRules, int, int]] = []
-  words_to_rules = word_rules_to_rules_dict(word_rules)
-
-  for i, (rule, words) in enumerate(words_to_rules.items()):
-    for word in words:
-      total_occ = phoneme_occurrences[(word.graphemes, word.phonemes)]
-      phone_occ = phone_occurrences[word]
-      word_rules = word_rules[word]
-      res.append((
-        i,
-        rule,
-        word,
-        word_rules,
-        phone_occ,
-        total_occ,
-      ))
-
-  return res
-
-
-def rule_stats_to_df(word_stats: List[RuleStatsEntry]) -> DataFrame:
-  resulting_csv_data = []
-  for i, rule, word_entry, word_rules, count, total_count in word_stats:
-    rule_str = rule_to_str(rule, None)
-    rules_str = rules_to_str(word_rules)
-    resulting_csv_data.append((
-      i + 1,
-      rule_str,
-      word_entry.graphemes_str,
-      word_entry.phonemes_str,
-      word_entry.phones_str,
-      rules_str,
-      count,
-      total_count,
-      f"{count/total_count*100:.2f}",
-    ))
-
-  sort_rule_stats_df(resulting_csv_data)
-
-  res = DataFrame(
-    data=resulting_csv_data,
-    columns=["Nr", "Rule", "English", "Phonemes", "Phones", "All Rules",
-             "Occurrences", "Occurrences Total", "Occurrences (%)"],
-  )
-
-  return res
-
-
-def sort_rule_stats_df(resulting_csv_data: List[Tuple[str, str, str, str, int, int, str]]):
-  ''' Sorts: Nr ASC, Occurrences DESC, Phones ASC'''
-  resulting_csv_data.sort(key=lambda x: (x[0], x[7] - x[6], x[4]))
-
-
-
-def symbols_to_str_with_space(symbols: List[str]) -> str:
-  return " ".join(symbols)
-
-
-def get_probabilities(words: List[WordEntry]) -> List[Tuple[str, str, int, int]]:
-  tmp = {}
-  for word in words:
-    k = symbols_to_str_with_space(word.phonemes)
-    v = symbols_to_str_with_space(word.phones)
-    if k not in tmp:
-      tmp[k] = []
-    tmp[k].append(v)
-
-  res = []
-  for phoneme_str, phones_strs in tmp.items():
-    assert len(phones_strs) > 0
-    c = Counter(phones_strs)
-    if len(c) == 1:
-      continue
-    for phone_str, count in c.items():
-      res.append((
-        phoneme_str,
-        phone_str,
-        count
-      ))
-
-  res.sort(key=lambda x: (x[0], -x[2]))
-
-  return res
-
-
-def probabilities_to_df(probs: List[Tuple[str, str, int]]) -> DataFrame:
-  res = DataFrame(
-    data=probs,
-    columns=["phonemes", "phones", "occurrence"],
-  )
-
-  return res
-
-
-def parse_probabilities_df(df: DataFrame) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]]:
-  res: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]] = dict()
-  for _, row in df.iterrows():
-    phonemes = tuple(str(row["phonemes"]).split(" "))
-    phones = tuple(str(row["phones"]).split(" "))
-    prob = int(row["occurrence"])
-    if phonemes not in res:
-      res[phonemes] = []
-    res[phonemes].append((phones, prob))
-  return res
-
-
-def check_probabilities_are_valid(d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]]) -> bool:
-  logger = getLogger(__name__)
-  is_valid = True
-  for k, v in d.items():
-    replace_with, replace_with_prob = list(zip(*v))
-    set_replace_with = set(replace_with)
-    k_str = " ".join(k)
-    any_prob_is_zero = any(x == 0 for x in replace_with_prob)
-    if any_prob_is_zero:
-      is_valid = False
-      logger.error(
-        f"A least one probability was set to zero {k_str}!")
-    if len(replace_with) != len(set_replace_with):
-      is_valid = False
-      logger.error(f"Some phones are defined multiple times inside phoneme {k_str}!")
-  return is_valid
-
-
-def replace_with_prob(symbols: Tuple[str, ...], d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]]) -> Tuple[str, ...]:
-  assert symbols in d
-  replace_with, replace_with_prob = list(zip(*d[symbols]))
-  res = choices(replace_with, weights=replace_with_prob, k=1)[0]
-  # res_idx = np.random.choice(len(replace_with), 1, p=replace_with_prob)[0]
-  # res = replace_with[res_idx]
-  return res
+# def print_rule(word: WordEntry, rule: Rule) -> None:
+#   logger = getLogger(__name__)
+#   if rule.rule_type == RuleType.INSERTION:
+#     logger.info(
+#       f"Insertion of \"{rule.to_str}\" in word \"{word.phonemes_str}\" ({word.graphemes_str}) on position(s) {rule.positions_str} -> \"{word.phones_str}\".")
+#   elif rule.rule_type == RuleType.OMISSION:
+#     logger.info(
+#       f"Omission of \"{rule.from_str}\" in word \"{word.phonemes_str}\" ({word.graphemes_str}) on position(s) {rule.positions_str} -> \"{word.phones_str}\".")
+#   elif rule.rule_type == RuleType.SUBSTITUTION:
+#     logger.info(
+#       f"Substitution of \"{rule.from_str}\" to \"{rule.to_str}\" in word \"{word.phonemes_str}\" ({word.graphemes_str}) on position(s) {rule.positions_str} -> \"{word.phones_str}\".")
+#   else:
+#     assert False
