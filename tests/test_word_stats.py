@@ -1,174 +1,181 @@
+from collections import OrderedDict
+
+from accent_analyser.core.rule_detectionv2 import Rule, RuleType, WordEntry
+from accent_analyser.core.word_stats import (get_word_stats,
+                                             sort_word_stats_df,
+                                             word_stats_to_df)
+
 
 def test_get_word_stats__one_word_one_rule():
   word1 = WordEntry(
-    graphemes=["a"],
-    phonemes=["b"],
-    phones=["c"],
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
   )
+
   rule1 = Rule(
     rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
+    from_symbols=(),
+    to_symbols=("a",),
   )
 
-  word_rules = OrderedDict({
-    word1: [(rule1,)],
+  word_rules1 = OrderedDict({
+    (0,): rule1,
   })
 
-  res = get_word_stats(word_rules)
+  word_rules = OrderedDict({
+    word1: word_rules1,
+  })
+
+  phone_occurrences = OrderedDict({
+    word1: 1,
+  })
+
+  phoneme_occurrences = OrderedDict({
+    (word1.graphemes, word1.phonemes): 1,
+  })
+
+  res = get_word_stats(word_rules, phone_occurrences, phoneme_occurrences)
 
   assert len(res) == 1
-  assert res[0] == (0, word1, (rule1,), 1, 1)
+  assert res[0] == (0, word1, word_rules1, 1, 1)
 
 
-def test_get_word_stats__multiple_words_multiple_rules():
-  word1_1 = WordEntry(
-    graphemes=["a"],
-    phonemes=["b"],
-    phones=["c"],
-  )
-  word1_2 = WordEntry(
-      graphemes=["a"],
-      phonemes=["b"],
-      phones=["d"],
-  )
-  word2 = WordEntry(
-    graphemes=["a"],
-    phonemes=["d"],
-    phones=["e"],
-  )
-
-  rule1 = Rule(
-    rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
-  )
-
-  rule2 = Rule(
-    rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["b"],
-    positions=[0],
-  )
-
-  word_rules = OrderedDict({
-    word1_1: [(rule1,), (rule1,), (rule1,)],
-    word1_2: [(rule1,), (rule1,)],
-    word2: [(rule2,), (rule2,), (rule2,)],
-  })
-
-  res = get_word_stats(word_rules)
-
-  assert len(res) == 3
-  assert res[0] == (0, word1_1, (rule1,), 3, 5)
-  assert res[1] == (0, word1_2, (rule1,), 2, 5)
-  assert res[2] == (1, word2, (rule2,), 3, 3)
-
-
-def test_rule_hash__same_content_is_equal():
-  rule1 = Rule(
-    rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
-  )
-
-  rule2 = Rule(
-    rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
-  )
-
-  assert rule1 == rule2
-
-
-def test_get_word_stats__multiple_rules_with_same_content_were_merged():
+def test_get_word_stats__no_rules():
   word1 = WordEntry(
-    graphemes=["a"],
-    phonemes=["b"],
-    phones=["c"],
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
   )
 
-  rule1 = Rule(
-    rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
-  )
-
-  rule2 = Rule(
-    rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
-  )
+  word_rules1 = OrderedDict()
 
   word_rules = OrderedDict({
-    word1: [(rule1,), (rule2,), (rule1,), (rule2,)],
+    word1: word_rules1,
   })
 
-  res = get_word_stats(word_rules)
+  phone_occurrences = OrderedDict({
+    word1: 4,
+  })
+
+  phoneme_occurrences = OrderedDict({
+    (word1.graphemes, word1.phonemes): 6,
+  })
+
+  res = get_word_stats(word_rules, phone_occurrences, phoneme_occurrences)
 
   assert len(res) == 1
-  assert res[0] == (0, word1, (rule1,), 4, 4)
+  assert res[0] == (0, word1, word_rules1, 4, 6)
 
 
-def test_get_word_stats__multiple_rules():
+def test_get_word_stats__one_word_one_rule__multiple_occurrences():
   word1 = WordEntry(
-    graphemes=["a"],
-    phonemes=["b"],
-    phones=["c"],
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
+  )
+
+  rule1 = Rule(
+    rule_type=RuleType.INSERTION,
+    from_symbols=(),
+    to_symbols=("a",),
+  )
+
+  word_rules1 = OrderedDict({
+    (0,): rule1,
+  })
+
+  word_rules = OrderedDict({
+    word1: word_rules1,
+  })
+
+  phone_occurrences = OrderedDict({
+    word1: 2,
+  })
+
+  phoneme_occurrences = OrderedDict({
+    (word1.graphemes, word1.phonemes): 8,
+  })
+
+  res = get_word_stats(word_rules, phone_occurrences, phoneme_occurrences)
+
+  assert len(res) == 1
+  assert res[0] == (0, word1, word_rules1, 2, 8)
+
+
+def test_get_word_stats__two_words_one_rule():
+  word1 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
   )
 
   word2 = WordEntry(
-    graphemes=["a"],
-    phonemes=["b"],
-    phones=["e"],
+    graphemes=("a",),
+    phonemes=("c",),
+    phones=("d",),
   )
 
   rule1 = Rule(
     rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
+    from_symbols=(),
+    to_symbols=("a",),
   )
 
-  word_rules = OrderedDict({
-    word1: [(rule1,), (rule1,), (rule1,), (rule1,)],
-    word2: [(rule1,)],
+  word_rules1 = OrderedDict({
+    (0,): rule1,
   })
 
-  res = get_word_stats(word_rules)
+  word_rules2 = OrderedDict({
+    (5,): rule1,
+  })
+
+  word_rules = OrderedDict({
+    word1: word_rules1,
+    word2: word_rules2,
+  })
+
+  phone_occurrences = OrderedDict({
+    word1: 2,
+    word2: 8,
+  })
+
+  phoneme_occurrences = OrderedDict({
+    (word1.graphemes, word1.phonemes): 8,
+    (word2.graphemes, word2.phonemes): 16,
+  })
+
+  res = get_word_stats(word_rules, phone_occurrences, phoneme_occurrences)
 
   assert len(res) == 2
-  assert res[0] == (0, word1, (rule1,), 4, 5)
-  assert res[1] == (0, word2, (rule1,), 1, 5)
+  assert res[0] == (0, word1, word_rules1, 2, 8)
+  assert res[1] == (1, word2, word_rules2, 8, 16)
 
 
 def test_word_stats_to_df():
   word1 = WordEntry(
-    graphemes=["a"],
-    phonemes=["b"],
-    phones=["c"],
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
   )
 
   rule1 = Rule(
     rule_type=RuleType.INSERTION,
-    from_symbols=[],
-    to_symbols=["a"],
-    positions=[0],
+    from_symbols=(),
+    to_symbols=("a",),
   )
 
-  word_stats = [(0, word1, (rule1,), 3, 4)]
+  word_rules1 = OrderedDict({
+    (1,): rule1,
+  })
+
+  word_stats = [(0, word1, word_rules1, 3, 4)]
   res = word_stats_to_df(word_stats)
 
   assert len(res) == 1
   assert list(res.columns) == ["Nr", "English", "Phonemes", "Phones", "Rules",
                                "Occurrences", "Occurrences Total", "Occurrences (%)"]
-  assert list(res.iloc[0]) == [1, 'a', 'b', 'c', 'I(a;1)', 3, 4, '75.00']
+  assert list(res.iloc[0]) == [1, 'a', 'b', 'c', 'I(a;2)', 3, 4, '75.00']
 
 
 def test_sort_word_stats_df():

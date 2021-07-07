@@ -116,12 +116,18 @@ def rule_to_str(rule: Optional[Rule], positions: Optional[Positions]):
   assert False
 
 
+def positions_to_one_based(positions: Positions) -> Positions:
+  one_based_positions = [x + 1 for x in positions]
+  return one_based_positions
+
+
 def rules_to_str(rules: WordRules) -> str:
   if len(rules) == 0:
     return UNCHANGED_RULE
   tmp = []
   for positions, rule in rules.items():
-    rule_str = rule_to_str(rule, positions)
+    one_based_positions = positions_to_one_based(positions)
+    rule_str = rule_to_str(rule, one_based_positions)
     tmp.append(rule_str)
   res = ", ".join(tmp)
   return res

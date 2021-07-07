@@ -35,6 +35,22 @@ def test_df_to_data():
   )]
 
 
+def test_rule_hash__same_content_is_equal():
+  rule1 = Rule(
+    rule_type=RuleType.INSERTION,
+    from_symbols=(),
+    to_symbols=("a",),
+  )
+
+  rule2 = Rule(
+    rule_type=RuleType.INSERTION,
+    from_symbols=(),
+    to_symbols=("a",),
+  )
+
+  assert rule1 == rule2
+
+
 # region get_ndiff_info
 
 
@@ -289,7 +305,7 @@ def test_rules_to_str__one_entry():
 
   res = rules_to_str(word_rule)
 
-  assert res == "O(ab;0)"
+  assert res == "O(ab;1)"
 
 
 def test_rules_to_str__two_entries__are_separated_by_comma():
@@ -306,7 +322,7 @@ def test_rules_to_str__two_entries__are_separated_by_comma():
 
   res = rules_to_str(word_rule)
 
-  assert res == "O(ab;0), O(ab;1)"
+  assert res == "O(ab;1), O(ab;2)"
 
 
 def test_rules_to_str__entries__are_in_same_positions_as_in_list():
@@ -324,7 +340,7 @@ def test_rules_to_str__entries__are_in_same_positions_as_in_list():
 
   res = rules_to_str(word_rule)
 
-  assert res == "O(ab;2), O(ab;1), O(ab;3)"
+  assert res == "O(ab;3), O(ab;2), O(ab;4)"
 
 # endregion
 

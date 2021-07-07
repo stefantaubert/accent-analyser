@@ -1,17 +1,15 @@
-
 from logging import Logger, getLogger
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 import pandas as pd
-from accent_analyser.core.rule_detection import (check_probabilities_are_valid,
-                                                 df_to_data, get_probabilities,
-                                                 get_rule_stats, get_rules,
-                                                 get_word_stats,
-                                                 parse_probabilities_df,
-                                                 probabilities_to_df,
-                                                 rule_stats_to_df,
-                                                 word_stats_to_df)
+from accent_analyser.core.rule_detectionv2 import (df_to_data,
+                                                   get_rules_from_words)
+from accent_analyser.core.rule_stats import get_rule_stats, rule_stats_to_df
+from accent_analyser.core.word_probabilities import (get_probabilities,
+                                                     parse_probabilities_df,
+                                                     probabilities_to_df)
+from accent_analyser.core.word_stats import get_word_stats, word_stats_to_df
 from text_utils.ipa2symb import IPAExtractionSettings
 
 
@@ -49,7 +47,7 @@ def print_info(paths: List[Path]):
   output_path.parent.mkdir(parents=False, exist_ok=True)
   word_probs_df.to_csv(output_path, sep="\t", header=True, index=False)
 
-  word_rules = get_rules(words)
+  word_rules = get_rules_from_words(words)
   word_stats = get_word_stats(word_rules)
   word_stats_df = word_stats_to_df(word_stats)
 

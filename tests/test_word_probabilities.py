@@ -1,3 +1,11 @@
+import random
+
+from accent_analyser.core.rule_detectionv2 import WordEntry
+from accent_analyser.core.word_probabilities import (
+    check_probabilities_are_valid, get_probabilities, parse_probabilities_df,
+    probabilities_to_df, replace_with_prob, symbols_to_str_with_space)
+from pandas import DataFrame
+
 
 def test_symbols_to_str_with_space():
   res = symbols_to_str_with_space(["a", "b"])
@@ -14,8 +22,8 @@ def test_get_probabilities__empty_list():
 
 def test_get_probabilities__ignores_all_same():
   words = [
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["a"]),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("a")),
   ]
 
   res = get_probabilities(words)
@@ -25,11 +33,11 @@ def test_get_probabilities__ignores_all_same():
 
 def test_get_probabilities__multiple_phones_are_distinguished():
   words = [
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["b"]),
-    WordEntry([], ["a"], ["b"]),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("b")),
+    WordEntry((), ("a"), ("b")),
   ]
 
   res = get_probabilities(words)
@@ -41,12 +49,12 @@ def test_get_probabilities__multiple_phones_are_distinguished():
 
 def test_get_probabilities__rounds_to_six_dec():
   words = [
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["b"]),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("b")),
   ]
 
   res = get_probabilities(words)
@@ -58,12 +66,12 @@ def test_get_probabilities__rounds_to_six_dec():
 
 def test_get_probabilities__sorts_desc_after_probs():
   words = [
-    WordEntry([], ["a"], ["a"]),
-    WordEntry([], ["a"], ["c"]),
-    WordEntry([], ["a"], ["c"]),
-    WordEntry([], ["a"], ["c"]),
-    WordEntry([], ["a"], ["b"]),
-    WordEntry([], ["a"], ["b"]),
+    WordEntry((), ("a"), ("a")),
+    WordEntry((), ("a"), ("c")),
+    WordEntry((), ("a"), ("c")),
+    WordEntry((), ("a"), ("c")),
+    WordEntry((), ("a"), ("b")),
+    WordEntry((), ("a"), ("b")),
   ]
 
   res = get_probabilities(words)
@@ -76,8 +84,8 @@ def test_get_probabilities__sorts_desc_after_probs():
 
 def test_get_probabilities__adds_spaces():
   words = [
-    WordEntry([], ["a", "b"], ["a", "c"]),
-    WordEntry([], ["a", "b"], ["b", "c"]),
+    WordEntry((), ("a", "b"), ("a", "c")),
+    WordEntry((), ("a", "b"), ("b", "c")),
   ]
 
   res = get_probabilities(words)
@@ -161,8 +169,8 @@ def test_check_probabilities_are_valid__probs_equal_one__returns_true():
   d = {
     ("a", "b"): [
       (("a", "c"), 1),
-      (("a", "d"), 6)
-    ]
+      (("a", "d"), 6),
+    ],
   }
 
   res = check_probabilities_are_valid(d)
