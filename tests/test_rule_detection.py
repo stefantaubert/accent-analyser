@@ -634,6 +634,7 @@ def test_sort_rule_stats_df():
   assert resulting_csv_data[3] == (1, "ruleA", "a", "b", "b", "ruleA", 1, 4, "75.00")
 
 
+
 def test_df_to_data():
   df = DataFrame(
     data=[

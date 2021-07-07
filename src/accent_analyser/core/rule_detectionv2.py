@@ -1,16 +1,12 @@
-import dataclasses
-from collections import Counter, OrderedDict
-from copy import deepcopy
-from dataclasses import dataclass, field
+from collections import OrderedDict
+from dataclasses import dataclass
 from difflib import ndiff
 from enum import IntEnum
-from logging import StrFormatStyle, getLogger
-from random import choices
-from typing import Dict, Iterable, List, Optional
+from logging import getLogger
+from typing import List, Optional
 from typing import OrderedDict as OrderedDictType
-from typing import Set, Tuple
+from typing import Tuple
 
-import numpy as np
 from ordered_set import OrderedSet
 from pandas import DataFrame
 from text_utils import (IPAExtractionSettings, Language, strip_word,
@@ -96,11 +92,11 @@ PhoneOccurrences = OrderedDictType[WordEntry, int]
 PhonemeOccurrences = OrderedDictType[Tuple[Graphemes, Phonemes], int]
 
 
-def get_indicies_as_str(indicies: Tuple[int, ...]):
-  if len(indicies) <= 2:
-    return ','.join(list(map(str, indicies)))
+def positions_to_str(positions: Positions) -> str:
+  if len(positions) <= 2:
+    return ','.join(list(map(str, positions)))
   else:
-    return f"{indicies[0]}-{indicies[-1]}"
+    return f"{positions[0]}-{positions[-1]}"
 
 
 def rule_to_str(rule: Optional[Rule], positions: Optional[Positions]):
@@ -108,8 +104,8 @@ def rule_to_str(rule: Optional[Rule], positions: Optional[Positions]):
     return UNCHANGED_RULE
 
   positions_str = ""
-  if positions is None:
-    positions_str = f";{get_indicies_as_str(positions)}"
+  if positions is not None:
+    positions_str = f";{positions_to_str(positions)}"
 
   if rule.rule_type == RuleType.OMISSION:
     return f"O({rule.from_str}{positions_str})"
@@ -131,7 +127,7 @@ def rules_to_str(rules: WordRules) -> str:
   return res
 
 
-@dataclass()  # (eq=True, frozen=True)
+@dataclass()
 class Change():
   change: str
   change_type: ChangeType
@@ -248,12 +244,9 @@ def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Tuple[Posi
       else:
         to_symbols.append(change.change)
         to_positions.append(pos)
-    # TODO: reevaluate
     if del_add:
       positions = from_positions
     else:
-      # if len(to_positions) > 1:
-      #   print()
       positions = [x - len(to_positions) for x in from_positions]
 
     assert len(positions) == len(from_symbols)
@@ -285,7 +278,6 @@ def clustered_changes_to_rules(clustered_changes: List[OrderedDictType[int, Chan
 
 
 def get_phone_occurrences(words: List[WordEntry]) -> PhoneOccurrences:
-  '''todo test'''
   words_dict: PhoneOccurrences = OrderedDict()
   for w in words:
     if w not in words_dict:
@@ -295,7 +287,6 @@ def get_phone_occurrences(words: List[WordEntry]) -> PhoneOccurrences:
 
 
 def get_phoneme_occurrences(words: List[WordEntry]) -> PhonemeOccurrences:
-  '''todo test'''
   result: PhonemeOccurrences = OrderedDict()
   for word_combi in words:
     k = (word_combi.graphemes, word_combi.phonemes)
