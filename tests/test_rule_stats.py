@@ -30,14 +30,10 @@ def test_get_rule_stats__one_word_one_rule():
     word1: 4,
   })
 
-  phoneme_occurrences = OrderedDict({
-    (word1.graphemes, word1.phonemes): 6,
-  })
-
-  res = get_rule_stats(word_rules, phone_occurrences, phoneme_occurrences)
+  res = get_rule_stats(word_rules, phone_occurrences)
 
   assert len(res) == 1
-  assert res[0] == (0, rule1, word1, word_rules1, 4, 6)
+  assert res[0] == (1, 'I(a)', 'a', 'b', 'c', 'I(a;1)', 4, 4, '100.00')
 
 
 def test_get_rule_stats__no_rules():
@@ -57,40 +53,20 @@ def test_get_rule_stats__no_rules():
     word1: 4,
   })
 
-  phoneme_occurrences = OrderedDict({
-    (word1.graphemes, word1.phonemes): 6,
-  })
-
-  res = get_rule_stats(word_rules, phone_occurrences, phoneme_occurrences)
+  res = get_rule_stats(word_rules, phone_occurrences)
 
   assert len(res) == 1
-  assert res[0] == (0, None, word1, word_rules1, 4, 6)
+  assert res[0] == (1, 'Unchanged', 'a', 'b', 'c', 'Unchanged', 4, 4, '100.00')
 
 
 def test_rule_stats_to_df():
-  word1 = WordEntry(
-    graphemes=("a",),
-    phonemes=("b",),
-    phones=("c",),
-  )
-
-  rule1 = Rule(
-    rule_type=RuleType.INSERTION,
-    from_symbols=(),
-    to_symbols=("a",),
-  )
-
-  word_rules1 = OrderedDict({
-    (0,): rule1,
-  })
-
-  rule_stats = [(0, rule1, word1, word_rules1, 4, 5)]
+  rule_stats = [(1, 'I(a)', 'a', 'b', 'c', 'I(a;1)', 4, 5, '80.00')]
 
   res = rule_stats_to_df(rule_stats)
 
   assert len(res) == 1
-  assert list(res.columns) == ["Nr", "Rule", "English", "Phonemes", "Phones", "All Rules",
-                               "Occurrences", "Occurrences Total", "Occurrences (%)"]
+  assert list(res.columns) == ["Nr", "Rule", "English", "Phonemes", "Phones",
+                               "All Rules", "Occurrences", "Occurrences Total", "Occurrences (%)"]
   assert list(res.iloc[0]) == [1, 'I(a)', 'a', 'b', 'c', 'I(a;1)', 4, 5, '80.00']
 
 

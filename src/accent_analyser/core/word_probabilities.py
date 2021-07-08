@@ -1,79 +1,71 @@
-import dataclasses
-from collections import Counter, OrderedDict
-from copy import deepcopy
-from dataclasses import dataclass, field
-from difflib import ndiff
-from enum import IntEnum
-from logging import StrFormatStyle, getLogger
+from logging import getLogger
 from random import choices
-from typing import Dict, Iterable, List, Optional
-from typing import OrderedDict as OrderedDictType
-from typing import Set, Tuple
+from typing import Dict, List, Tuple
 
-import numpy as np
-from accent_analyser.core.rule_detection import WordEntry
-from ordered_set import OrderedSet
+from accent_analyser.core.rule_detection import (PhonemeOccurrences,
+                                                 PhoneOccurrences)
 from pandas import DataFrame
-from text_utils import (IPAExtractionSettings, Language, strip_word,
-                        symbols_to_lower, text_to_symbols)
-from text_utils.language import get_lang_from_str, is_lang_from_str_supported
+
+_ProbabilityEntry = Tuple[str, str, int]
+
+Symbols = Tuple[str, ...]
+ProbabilitiesDict = Dict[Symbols, List[Tuple[Symbols, int]]]
+
+_PHONEMES_COL_NAME = "Phonemes"
+_PHONES_COL_NAME = "Phones"
+_OCCURRENCE_COL_NAME = "Occurrence"
 
 
-def get_probabilities(words: List[WordEntry]) -> List[Tuple[str, str, int, int]]:
-  tmp = {}
-  for word in words:
-    k = symbols_to_str_with_space(word.phonemes)
-    v = symbols_to_str_with_space(word.phones)
-    if k not in tmp:
-      tmp[k] = []
-    tmp[k].append(v)
-
-  res = []
-  for phoneme_str, phones_strs in tmp.items():
-    assert len(phones_strs) > 0
-    c = Counter(phones_strs)
-    if len(c) == 1:
+def get_probabilities(phone_occurrences: PhoneOccurrences, phoneme_occurrences: PhonemeOccurrences) -> List[_ProbabilityEntry]:
+  probabilities = []
+  for word, word_occurrences in phone_occurrences.items():
+    word_is_always_the_same = phoneme_occurrences[(
+      word.graphemes, word.phonemes)] == word_occurrences
+    if word_is_always_the_same:
       continue
-    for phone_str, count in c.items():
-      res.append((
-        phoneme_str,
-        phone_str,
-        count
-      ))
+    probabilities.append((
+      symbols_to_str_with_space(word.phonemes),
+      symbols_to_str_with_space(word.phones),
+      word_occurrences,
+    ))
 
-  res.sort(key=lambda x: (x[0], -x[2]))
+  sort_probs(probabilities)
 
-  return res
+  return probabilities
 
 
-def probabilities_to_df(probs: List[Tuple[str, str, int]]) -> DataFrame:
+def sort_probs(probabilities: List[_ProbabilityEntry]) -> None:
+  probabilities.sort(key=lambda x: (x[0], -x[2]))
+
+
+def probabilities_to_df(probs: List[_ProbabilityEntry]) -> DataFrame:
   res = DataFrame(
     data=probs,
-    columns=["phonemes", "phones", "occurrence"],
+    columns=[_PHONEMES_COL_NAME, _PHONES_COL_NAME, _OCCURRENCE_COL_NAME],
   )
 
   return res
 
 
-def parse_probabilities_df(df: DataFrame) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]]:
-  res: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]] = dict()
+def parse_probabilities_df(df: DataFrame) -> ProbabilitiesDict:
+  res: ProbabilitiesDict = dict()
   for _, row in df.iterrows():
-    phonemes = tuple(str(row["phonemes"]).split(" "))
-    phones = tuple(str(row["phones"]).split(" "))
-    prob = int(row["occurrence"])
+    phonemes = symbols_from_str_with_space(row[_PHONEMES_COL_NAME])
+    phones = symbols_from_str_with_space(row[_PHONES_COL_NAME])
+    prob = int(row[_OCCURRENCE_COL_NAME])
     if phonemes not in res:
       res[phonemes] = []
     res[phonemes].append((phones, prob))
   return res
 
 
-def check_probabilities_are_valid(d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]]) -> bool:
+def check_probabilities_are_valid(probabilities: ProbabilitiesDict) -> bool:
   logger = getLogger(__name__)
   is_valid = True
-  for k, v in d.items():
+  for k, v in probabilities.items():
     replace_with, replace_with_prob = list(zip(*v))
     set_replace_with = set(replace_with)
-    k_str = " ".join(k)
+    k_str = symbols_to_str_with_space(k)
     any_prob_is_zero = any(x == 0 for x in replace_with_prob)
     if any_prob_is_zero:
       is_valid = False
@@ -85,14 +77,16 @@ def check_probabilities_are_valid(d: Dict[Tuple[str, ...], List[Tuple[Tuple[str,
   return is_valid
 
 
-def replace_with_prob(symbols: Tuple[str, ...], d: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], int]]]) -> Tuple[str, ...]:
+def replace_with_prob(symbols: Symbols, d: ProbabilitiesDict) -> Symbols:
   assert symbols in d
   replace_with, replace_with_prob = list(zip(*d[symbols]))
   res = choices(replace_with, weights=replace_with_prob, k=1)[0]
-  # res_idx = np.random.choice(len(replace_with), 1, p=replace_with_prob)[0]
-  # res = replace_with[res_idx]
   return res
 
 
-def symbols_to_str_with_space(symbols: List[str]) -> str:
+def symbols_from_str_with_space(symbols: str) -> Symbols:
+  return tuple(symbols.split(" "))
+
+
+def symbols_to_str_with_space(symbols: Symbols) -> str:
   return " ".join(symbols)

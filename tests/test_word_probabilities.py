@@ -1,4 +1,5 @@
 import random
+from collections import OrderedDict
 
 from accent_analyser.core.rule_detection import WordEntry
 from accent_analyser.core.word_probabilities import (
@@ -8,102 +9,136 @@ from pandas import DataFrame
 
 
 def test_symbols_to_str_with_space():
-  res = symbols_to_str_with_space(["a", "b"])
+  res = symbols_to_str_with_space(("a", "b"))
   assert res == "a b"
+
+# region get_probabilities
 
 
 def test_get_probabilities__empty_list():
-  words = []
-
-  res = get_probabilities(words)
+  res = get_probabilities(phone_occurrences=OrderedDict(), phoneme_occurrences=OrderedDict())
 
   assert len(res) == 0
 
 
 def test_get_probabilities__ignores_all_same():
-  words = [
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("a")),
-  ]
+  word1 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
+  )
 
-  res = get_probabilities(words)
+  phone_occurrences = OrderedDict({
+    word1: 4,
+  })
+
+  phoneme_occurrences = OrderedDict({
+    (word1.graphemes, word1.phonemes): 4,
+  })
+
+  res = get_probabilities(phone_occurrences, phoneme_occurrences)
 
   assert len(res) == 0
 
 
 def test_get_probabilities__multiple_phones_are_distinguished():
-  words = [
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("b")),
-    WordEntry((), ("a"), ("b")),
-  ]
+  word1 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
+  )
 
-  res = get_probabilities(words)
+  word2 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("d",),
+  )
 
-  assert len(res) == 2
-  assert res[0] == ("a", "a", 3)
-  assert res[1] == ("a", "b", 2)
+  phone_occurrences = OrderedDict({
+    word1: 4,
+    word2: 3,
+  })
 
+  phoneme_occurrences = OrderedDict({
+    (("a",), ("b",)): 7,
+  })
 
-def test_get_probabilities__rounds_to_six_dec():
-  words = [
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("b")),
-  ]
-
-  res = get_probabilities(words)
+  res = get_probabilities(phone_occurrences, phoneme_occurrences)
 
   assert len(res) == 2
-  assert res[0] == ("a", "a", 5)
-  assert res[1] == ("a", "b", 1)
+  assert res[0] == ("b", "c", 4)
+  assert res[1] == ("b", "d", 3)
 
 
 def test_get_probabilities__sorts_desc_after_probs():
-  words = [
-    WordEntry((), ("a"), ("a")),
-    WordEntry((), ("a"), ("c")),
-    WordEntry((), ("a"), ("c")),
-    WordEntry((), ("a"), ("c")),
-    WordEntry((), ("a"), ("b")),
-    WordEntry((), ("a"), ("b")),
-  ]
+  word1 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("c",),
+  )
 
-  res = get_probabilities(words)
+  word2 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("d",),
+  )
+
+  word3 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b",),
+    phones=("e",),
+  )
+
+  phone_occurrences = OrderedDict({
+    word1: 3,
+    word2: 1,
+    word3: 2,
+  })
+
+  phoneme_occurrences = OrderedDict({
+    (("a",), ("b",)): 6,
+  })
+
+  res = get_probabilities(phone_occurrences, phoneme_occurrences)
 
   assert len(res) == 3
-  assert res[0] == ("a", "c", 3)
-  assert res[1] == ("a", "b", 2)
-  assert res[2] == ("a", "a", 1)
+  assert res[0] == ("b", "c", 3)
+  assert res[1] == ("b", "e", 2)
+  assert res[2] == ("b", "d", 1)
 
 
 def test_get_probabilities__adds_spaces():
-  words = [
-    WordEntry((), ("a", "b"), ("a", "c")),
-    WordEntry((), ("a", "b"), ("b", "c")),
-  ]
+  word1 = WordEntry(
+    graphemes=("a",),
+    phonemes=("b", "c",),
+    phones=("c", "d",),
+  )
 
-  res = get_probabilities(words)
+  phone_occurrences = OrderedDict({
+    word1: 3,
+  })
 
-  assert len(res) == 2
-  assert res[0] == ("a b", "a c", 1)
-  assert res[1] == ("a b", "b c", 1)
+  phoneme_occurrences = OrderedDict({
+    (word1.graphemes, word1.phonemes): 4,
+  })
+
+  res = get_probabilities(phone_occurrences, phoneme_occurrences)
+
+  assert len(res) == 1
+  assert res[0] == ("b c", "c d", 3)
+
+# endregion
 
 
 def test_probabilities_to_df():
-  probs = [
+  probabilities = [
     ("a b", "a c", 1),
   ]
 
-  res = probabilities_to_df(probs)
+  res = probabilities_to_df(probabilities)
 
   assert len(res) == 1
-  assert list(res.columns) == ["phonemes", "phones", "occurrence"]
+  assert list(res.columns) == ["Phonemes", "Phones", "Occurrence"]
   assert list(res.iloc[0]) == ["a b", "a c", 1]
 
 
@@ -113,7 +148,7 @@ def test_parse_probabilities_df():
       ("a b", "a c", 1),
       ("a b", "a d", 8)
     ],
-    columns=["phonemes", "phones", "occurrence"],
+    columns=["Phonemes", "Phones", "Occurrence"],
   )
 
   res = parse_probabilities_df(df)
