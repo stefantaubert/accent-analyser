@@ -1,17 +1,17 @@
 from collections import OrderedDict
 
-from accent_analyser.core.rule_detectionv2 import (UNCHANGED_RULE, Change,
-                                                   ChangeType, Rule, RuleType,
-                                                   WordEntry,
-                                                   changes_cluster_to_rule,
-                                                   cluster_changes,
-                                                   clustered_changes_to_rules,
-                                                   df_to_data, get_ndiff_info,
-                                                   get_phone_occurrences,
-                                                   get_phoneme_occurrences,
-                                                   get_rules_from_words,
-                                                   positions_to_str,
-                                                   rule_to_str, rules_to_str)
+from accent_analyser.core.rule_detection import (UNCHANGED_RULE, Change,
+                                                 ChangeType, Rule, RuleType,
+                                                 WordEntry,
+                                                 changes_cluster_to_rule,
+                                                 cluster_changes,
+                                                 clustered_changes_to_rules,
+                                                 df_to_data, get_ndiff_info,
+                                                 get_phone_occurrences,
+                                                 get_phoneme_occurrences,
+                                                 get_rules_from_words,
+                                                 positions_to_str, rule_to_str,
+                                                 rules_to_str)
 from ordered_set import OrderedSet
 from pandas.core.frame import DataFrame
 from text_utils import Language

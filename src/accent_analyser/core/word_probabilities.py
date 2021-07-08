@@ -11,7 +11,7 @@ from typing import OrderedDict as OrderedDictType
 from typing import Set, Tuple
 
 import numpy as np
-from accent_analyser.core.rule_detectionv2 import WordEntry
+from accent_analyser.core.rule_detection import WordEntry
 from ordered_set import OrderedSet
 from pandas import DataFrame
 from text_utils import (IPAExtractionSettings, Language, strip_word,

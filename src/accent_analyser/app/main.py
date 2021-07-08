@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import pandas as pd
-from accent_analyser.core.rule_detectionv2 import (df_to_data,
-                                                   get_phone_occurrences,
-                                                   get_phoneme_occurrences,
-                                                   get_rules_from_words)
+from accent_analyser.core.rule_detection import (df_to_data,
+                                                 get_phone_occurrences,
+                                                 get_phoneme_occurrences,
+                                                 get_rules_from_words)
 from accent_analyser.core.rule_stats import get_rule_stats, rule_stats_to_df
 from accent_analyser.core.word_probabilities import (get_probabilities,
                                                      parse_probabilities_df,

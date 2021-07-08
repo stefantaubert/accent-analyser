@@ -3,11 +3,10 @@ from typing import List, Optional
 from typing import OrderedDict as OrderedDictType
 from typing import Set, Tuple
 
-from accent_analyser.core.rule_detectionv2 import (PhonemeOccurrences,
-                                                   PhoneOccurrences, Rule,
-                                                   RuleType, WordEntry,
-                                                   WordRules, rule_to_str,
-                                                   rules_to_str)
+from accent_analyser.core.rule_detection import (PhoneOccurrences, Rule,
+                                                 RuleType, WordEntry,
+                                                 WordRules, rule_to_str,
+                                                 rules_to_str)
 from pandas import DataFrame
 
 RuleStatsEntry = Tuple[str, str, str, str, int, int, str]

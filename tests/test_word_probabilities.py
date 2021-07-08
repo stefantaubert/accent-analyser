@@ -1,6 +1,6 @@
 import random
 
-from accent_analyser.core.rule_detectionv2 import WordEntry
+from accent_analyser.core.rule_detection import WordEntry
 from accent_analyser.core.word_probabilities import (
     check_probabilities_are_valid, get_probabilities, parse_probabilities_df,
     probabilities_to_df, replace_with_prob, symbols_to_str_with_space)

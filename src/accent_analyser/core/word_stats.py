@@ -2,9 +2,9 @@ from typing import List
 from typing import OrderedDict as OrderedDictType
 from typing import Tuple
 
-from accent_analyser.core.rule_detectionv2 import (PhonemeOccurrences,
-                                                   PhoneOccurrences, WordEntry,
-                                                   WordRules, rules_to_str)
+from accent_analyser.core.rule_detection import (PhonemeOccurrences,
+                                                 PhoneOccurrences, WordEntry,
+                                                 WordRules, rules_to_str)
 from pandas import DataFrame
 
 WordStatsEntry = Tuple[str, str, str, str, int, int, str]

@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from accent_analyser.core.rule_detectionv2 import Rule, RuleType, WordEntry
+from accent_analyser.core.rule_detection import Rule, RuleType, WordEntry
 from accent_analyser.core.rule_stats import (get_rule_stats, rule_stats_to_df,
                                              sort_rule_stats)
 
