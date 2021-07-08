@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 from accent_analyser.core.rule_detectionv2 import Rule, RuleType, WordEntry
 from accent_analyser.core.rule_stats import (get_rule_stats, rule_stats_to_df,
-                                             sort_rule_stats_df)
+                                             sort_rule_stats)
 
 
 def test_get_rule_stats__one_word_one_rule():
@@ -102,7 +102,7 @@ def test_sort_rule_stats_df():
     (0, "rule1", "a", "a", "a", "rule1", 1, 4, "75.00"),
   ]
 
-  sort_rule_stats_df(resulting_csv_data)
+  sort_rule_stats(resulting_csv_data)
 
   assert len(resulting_csv_data) == 4
   assert resulting_csv_data[0] == (0, "rule1", "a", "a", "a", "rule1", 1, 4, "75.00")

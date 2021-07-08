@@ -60,7 +60,7 @@ def print_info(paths: List[Path]):
   output_path.parent.mkdir(parents=False, exist_ok=True)
   word_stats_df.to_csv(output_path, sep="\t", header=True, index=False)
 
-  rule_stats = get_rule_stats(word_rules, phone_occurrences, phoneme_occurrences)
+  rule_stats = get_rule_stats(word_rules, phone_occurrences)
   rule_stats_df = rule_stats_to_df(rule_stats)
 
   output_path = Path("out/res_rule_stats.csv")
