@@ -14,6 +14,7 @@ from text_utils import (IPAExtractionSettings, Language, strip_word,
 from text_utils.language import get_lang_from_str, is_lang_from_str_supported
 
 PROB_PRECISION_DECIMALS = 6
+# TODO: remove space symbol
 STRIP_SYMBOLS = list(".?!,;-: ")
 UNCHANGED_RULE = "Unchanged"
 
@@ -173,7 +174,7 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
   return res
 
 
-def get_ndiff_info(l1: List[str], l2: List[str]) -> OrderedDictType[int, Change]:
+def get_changes(l1: List[str], l2: List[str]) -> OrderedDictType[int, Change]:
   res = ndiff(l1, l2)
   result: OrderedDictType[int, Change] = OrderedDict()
   for change_pos, change in enumerate(res):
@@ -267,7 +268,6 @@ def changes_cluster_to_rule(cluster: OrderedDictType[int, Change]) -> Tuple[Posi
 
 
 def clustered_changes_to_rules(clustered_changes: List[OrderedDictType[int, Change]]) -> WordRules:
-  '''todo test'''
   rules: WordRules = dict()
   if len(clustered_changes) > 0:
     tmp = []
@@ -305,7 +305,7 @@ def get_phoneme_occurrences(words: List[WordEntry]) -> PhonemeOccurrences:
 def get_rules_from_words(words: OrderedSet[WordEntry]) -> OrderedDictType[WordEntry, WordRules]:
   rules_dict: OrderedDictType[WordEntry, WordRules] = OrderedDict()
   for word in words:
-    changes = get_ndiff_info(word.phonemes, word.phones)
+    changes = get_changes(word.phonemes, word.phones)
     clustered_changes = cluster_changes(changes)
     rules = clustered_changes_to_rules(clustered_changes)
     rules_dict[word] = rules

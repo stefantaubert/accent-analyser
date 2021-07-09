@@ -14,4 +14,5 @@ if __name__ == "__main__":
 
   mapping_table = load_probabilities(output_path)
 
-  res = replace_with_prob(("a",), mapping_table)
+  res = replace_with_prob(('b', 'ˈ', 'ʌ', 't'), mapping_table)
+  print(res)

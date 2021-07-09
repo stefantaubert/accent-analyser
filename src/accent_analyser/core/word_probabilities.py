@@ -6,10 +6,10 @@ from accent_analyser.core.rule_detection import (PhonemeOccurrences,
                                                  PhoneOccurrences)
 from pandas import DataFrame
 
-_ProbabilityEntry = Tuple[str, str, int]
-
 Symbols = Tuple[str, ...]
 ProbabilitiesDict = Dict[Symbols, List[Tuple[Symbols, int]]]
+
+_ProbabilityEntry = Tuple[str, str, int]
 
 _PHONEMES_COL_NAME = "Phonemes"
 _PHONES_COL_NAME = "Phones"
@@ -29,13 +29,13 @@ def get_probabilities(phone_occurrences: PhoneOccurrences, phoneme_occurrences: 
       word_occurrences,
     ))
 
-  sort_probs(probabilities)
+  sort_probabilities(probabilities)
 
   return probabilities
 
 
-def sort_probs(probabilities: List[_ProbabilityEntry]) -> None:
-  probabilities.sort(key=lambda x: (x[0], -x[2]))
+def sort_probabilities(probabilities: List[_ProbabilityEntry]) -> None:
+  probabilities.sort(key=lambda x: (x[0], -x[2], x[1]))
 
 
 def probabilities_to_df(probs: List[_ProbabilityEntry]) -> DataFrame:

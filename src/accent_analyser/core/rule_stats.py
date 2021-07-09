@@ -53,18 +53,26 @@ def get_rule_sort_key(rule: Optional[Rule]) -> Tuple[int, Tuple[str, ...], int]:
   return (0, tuple(list(rule.from_symbols) + list(rule.to_symbols)), 2)
 
 
+def get_rule_occurrences(words_to_rules: OrderedDictType[Rule, List[WordEntry]], phone_occurrences: PhoneOccurrences) -> OrderedDictType[Rule, int]:
+  res = OrderedDict()
+  for rule, words in words_to_rules.items():
+    count = 0
+    for word in words:
+      count += phone_occurrences[word]
+    res[rule] = count
+  return res
+
+
 def get_rule_stats(word_rules: OrderedDictType[WordEntry, WordRules], phone_occurrences: PhoneOccurrences) -> List[RuleStatsEntry]:
   res: List[Tuple[int, Rule, WordEntry, WordRules, int, int]] = []
   words_to_rules = word_rules_to_rules_dict(word_rules)
   words_to_rules = sort_word_rules_to_rules(words_to_rules)
+  rule_occurrences = get_rule_occurrences(words_to_rules, phone_occurrences)
 
   for rule_id, (rule, words) in enumerate(words_to_rules.items()):
     rule_id_one_based = rule_id + 1
     rule_str = rule_to_str(rule, positions=None)
-    total_occ = 0
-
-    for word in words:
-      total_occ += phone_occurrences[word]
+    total_occ = rule_occurrences[rule]
 
     for word in words:
       # total_word_occ = phoneme_occurrences[(word.graphemes, word.phonemes)]

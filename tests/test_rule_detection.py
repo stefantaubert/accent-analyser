@@ -6,7 +6,7 @@ from accent_analyser.core.rule_detection import (UNCHANGED_RULE, Change,
                                                  changes_cluster_to_rule,
                                                  cluster_changes,
                                                  clustered_changes_to_rules,
-                                                 df_to_data, get_ndiff_info,
+                                                 df_to_data, get_changes,
                                                  get_phone_occurrences,
                                                  get_phoneme_occurrences,
                                                  get_rules_from_words,
@@ -54,7 +54,7 @@ def test_rule_hash__same_content_is_equal():
 
 
 def test_get_ndiff_info__substitution__remove_add():
-  res = get_ndiff_info(
+  res = get_changes(
     ["a"],
     ["c"]
   )
@@ -66,7 +66,7 @@ def test_get_ndiff_info__substitution__remove_add():
 
 
 def test_get_ndiff_info__substitution__add_remove():
-  res = get_ndiff_info(
+  res = get_changes(
     ['a', 'b'],
     ['c']
   )
@@ -79,7 +79,7 @@ def test_get_ndiff_info__substitution__add_remove():
 
 
 def test_get_ndiff_info__insertion():
-  res = get_ndiff_info(["a"], ["a", "b"])
+  res = get_changes(["a"], ["a", "b"])
 
   assert res == OrderedDict({
     1: Change("b", ChangeType.ADD),
@@ -87,7 +87,7 @@ def test_get_ndiff_info__insertion():
 
 
 def test_get_ndiff_info__omission():
-  res = get_ndiff_info(["a"], [])
+  res = get_changes(["a"], [])
 
   assert res == OrderedDict({
     0: Change("a", ChangeType.REMOVE),
@@ -95,7 +95,7 @@ def test_get_ndiff_info__omission():
 
 
 def test_get_ndiff_info__nothing():
-  res = get_ndiff_info(["a"], ["a"])
+  res = get_changes(["a"], ["a"])
 
   assert res == OrderedDict()
 # endregion
