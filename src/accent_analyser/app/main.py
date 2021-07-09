@@ -8,14 +8,15 @@ from accent_analyser.core.rule_detection import (df_to_data,
                                                  get_phoneme_occurrences,
                                                  get_rules_from_words)
 from accent_analyser.core.rule_stats import get_rule_stats, rule_stats_to_df
-from accent_analyser.core.word_probabilities import (get_probabilities,
+from accent_analyser.core.word_probabilities import (ProbabilitiesDict,
+                                                     get_probabilities,
                                                      parse_probabilities_df,
                                                      probabilities_to_df)
 from accent_analyser.core.word_stats import get_word_stats, word_stats_to_df
 from text_utils.ipa2symb import IPAExtractionSettings
 
 
-def load_probabilities(path: Path) -> Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]]:
+def load_probabilities(path: Path) -> ProbabilitiesDict:
   df = pd.read_csv(path, sep="\t")
   res = parse_probabilities_df(df)
   return res

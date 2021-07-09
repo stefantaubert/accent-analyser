@@ -98,6 +98,22 @@ def test_get_ndiff_info__nothing():
   res = get_changes(["a"], ["a"])
 
   assert res == OrderedDict()
+
+
+def test_get_ndiff_info__substitution_omission_insertion():
+  res = get_changes(
+    ["h", "o", "w", "a", "b"],
+    ["x", "o", "a", "b", "c"],
+  )
+
+  assert res == OrderedDict({
+    0: Change("h", ChangeType.REMOVE),
+    1: Change("x", ChangeType.ADD),
+    3: Change("w", ChangeType.REMOVE),
+    6: Change("c", ChangeType.ADD),
+  })
+
+
 # endregion
 
 # region cluster_changes
@@ -230,6 +246,7 @@ def test_changes_cluster_to_rule__substitution_remove_add():
   assert res_rule.from_symbols == ("a",)
   assert res_rule.to_symbols == ("b",)
   assert res_pos == (0,)
+
 # endregion
 
 # region clustered_changes_to_rules
@@ -277,6 +294,39 @@ def test_clustered_changes_to_rules__sorts_after_positions():
   assert res[(0,)].to_symbols == ("a",)
   assert res[(1,)].to_symbols == ("b",)
   assert res[(2,)].to_symbols == ("c",)
+
+
+def test_clustered_changes_to_rules__multiple_changes():
+  #["h", "o", "w", "a", "b"]
+  #["x", "o", "a", "b", "c"]
+
+  substitution_change = OrderedDict({
+    0: Change("h", ChangeType.REMOVE),
+    1: Change("x", ChangeType.ADD),
+  })
+
+  omission_change = OrderedDict({
+    3: Change("w", ChangeType.REMOVE),
+  })
+
+  insertion_change = OrderedDict({
+    6: Change("c", ChangeType.ADD),
+  })
+
+  res = clustered_changes_to_rules([substitution_change, omission_change, insertion_change])
+
+  assert len(res) == 3
+  assert res[(0,)].rule_type == RuleType.SUBSTITUTION
+  assert res[(0,)].from_symbols == ("h",)
+  assert res[(0,)].to_symbols == ("x",)
+
+  assert res[(2,)].rule_type == RuleType.OMISSION
+  assert res[(2,)].from_symbols == ("w",)
+  assert res[(2,)].to_symbols == ()
+
+  assert res[(4,)].rule_type == RuleType.INSERTION
+  assert res[(4,)].from_symbols == ()
+  assert res[(4,)].to_symbols == ("c",)
 
 
 # endregion
