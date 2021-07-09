@@ -73,8 +73,8 @@ class WordEntry:
 @dataclass()
 class Rule():
   rule_type: RuleType
-  from_symbols: Tuple[str]
-  to_symbols: Tuple[str]
+  from_symbols: Tuple[str, ...]
+  to_symbols: Tuple[str, ...]
 
   @property
   def from_str(self) -> str:

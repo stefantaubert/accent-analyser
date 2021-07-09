@@ -18,6 +18,7 @@ accent-analyser = {editable = true, path = "."}
 ordered-set = "*"
 text-utils = {editable = true, ref = "master", git = "https://github.com/stefantaubert/text-utils.git"}
 pandas = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.8"
