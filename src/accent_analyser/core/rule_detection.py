@@ -9,18 +9,19 @@ from typing import Tuple
 
 from ordered_set import OrderedSet
 from pandas import DataFrame
-from text_utils import (IPAExtractionSettings, Language, strip_word,
-                        symbols_to_lower, text_to_symbols)
-from text_utils.language import get_lang_from_str, is_lang_from_str_supported
+from text_utils import (Language, SymbolFormat, Symbols, get_lang_from_str,
+                        text_to_symbols)
+from text_utils.language import is_lang_from_str_supported
+from text_utils.utils import symbols_strip, symbols_to_lower
 
 PROB_PRECISION_DECIMALS = 6
 # TODO: remove space symbol
 STRIP_SYMBOLS = list(".?!,;-: ")
 UNCHANGED_RULE = "Unchanged"
 
-Graphemes = Tuple[str, ...]
-Phonemes = Tuple[str, ...]
-Phones = Tuple[str, ...]
+Graphemes = Symbols
+Phonemes = Symbols
+Phones = Symbols
 Positions = Tuple[int, ...]
 
 
@@ -73,8 +74,8 @@ class WordEntry:
 @dataclass()
 class Rule():
   rule_type: RuleType
-  from_symbols: Tuple[str]
-  to_symbols: Tuple[str]
+  from_symbols: Symbols
+  to_symbols: Symbols
 
   @property
   def from_str(self) -> str:
@@ -100,7 +101,7 @@ def positions_to_str(positions: Positions) -> str:
     return f"{positions[0]}-{positions[-1]}"
 
 
-def rule_to_str(rule: Optional[Rule], positions: Optional[Positions]):
+def rule_to_str(rule: Optional[Rule], positions: Optional[Positions]) -> str:
   if rule is None:
     return UNCHANGED_RULE
 
@@ -140,7 +141,7 @@ class Change():
   change_type: ChangeType
 
 
-def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[WordEntry]:
+def df_to_data(data: DataFrame) -> List[WordEntry]:
   res = []
   logger = getLogger(__name__)
   for _, row in data.iterrows():
@@ -151,16 +152,16 @@ def df_to_data(data: DataFrame, ipa_settings: IPAExtractionSettings) -> List[Wor
     lang = get_lang_from_str(row_lang)
     if lang != Language.ENG:
       logger.error(f"Language {row_lang} is not supported!")
-    graphemes = text_to_symbols(str(row["graphemes"]), lang=Language.ENG,
-                                ipa_settings=None, logger=logger)
-    phonemes = text_to_symbols(str(row["phonemes"]), lang=Language.IPA,
-                               ipa_settings=ipa_settings, logger=logger)
-    phones = text_to_symbols(str(row["phones"]), lang=Language.IPA,
-                             ipa_settings=ipa_settings, logger=logger)
+    graphemes = text_to_symbols(
+      str(row["graphemes"]), text_format=SymbolFormat.GRAPHEMES, lang=Language.ENG)
+    phonemes = text_to_symbols(
+      str(row["phonemes"]), text_format=SymbolFormat.PHONEMES_IPA, lang=Language.ENG)
+    phones = text_to_symbols(
+      str(row["phones"]), text_format=SymbolFormat.PHONES_IPA, lang=Language.ENG)
 
-    graphemes = strip_word(symbols_to_lower(graphemes), symbols=STRIP_SYMBOLS)
-    phonemes = strip_word(phonemes, symbols=STRIP_SYMBOLS)
-    phones = strip_word(phones, symbols=STRIP_SYMBOLS)
+    graphemes = symbols_strip(symbols_to_lower(graphemes), strip=STRIP_SYMBOLS)
+    phonemes = symbols_strip(phonemes, strip=STRIP_SYMBOLS)
+    phones = symbols_strip(phones, strip=STRIP_SYMBOLS)
 
     entry = WordEntry(
         graphemes=tuple(graphemes),

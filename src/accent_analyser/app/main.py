@@ -13,7 +13,6 @@ from accent_analyser.core.word_probabilities import (ProbabilitiesDict,
                                                      parse_probabilities_df,
                                                      probabilities_to_df)
 from accent_analyser.core.word_stats import get_word_stats, word_stats_to_df
-from text_utils.ipa2symb import IPAExtractionSettings
 
 
 def load_probabilities(path: Path) -> ProbabilitiesDict:
@@ -24,12 +23,6 @@ def load_probabilities(path: Path) -> ProbabilitiesDict:
 
 def print_info(paths: List[Path]):
   logger = getLogger(__name__)
-
-  ipa_settings = IPAExtractionSettings(
-    ignore_arcs=True,
-    ignore_tones=True,
-    replace_unknown_ipa_by="_",
-  )
 
   merged_df = None
   for path in paths:
@@ -42,7 +35,7 @@ def print_info(paths: List[Path]):
     else:
       merged_df = pd.concat([merged_df, df])
 
-  words = df_to_data(merged_df, ipa_settings=ipa_settings)
+  words = df_to_data(merged_df)
 
   phoneme_occurrences = get_phoneme_occurrences(words)
   phone_occurrences = get_phone_occurrences(words)
