@@ -1,5 +1,4 @@
 .vscode
-src/debug/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -131,6 +130,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .vscode/
-playground.*
-.debug.py
 out/
+*_debug/
