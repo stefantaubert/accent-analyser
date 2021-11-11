@@ -132,3 +132,7 @@ dmypy.json
 .vscode/
 out/
 *_debug/
+
+*.csv
+*.pdf
+*.png
