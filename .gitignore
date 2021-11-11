@@ -133,3 +133,7 @@ dmypy.json
 playground.*
 .debug.py
 out/
+
+*.pdf
+*.csv
+*.png

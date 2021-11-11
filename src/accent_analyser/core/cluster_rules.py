@@ -4,6 +4,7 @@ from typing import OrderedDict as OrderedDictType
 from typing import Set, Tuple
 
 import numpy as np
+import pandas as pd
 from accent_analyser.core.rule_detection import (PhonemeOccurrences,
                                                  PhoneOccurrences, Rule,
                                                  RuleType, WordEntry,
@@ -11,10 +12,11 @@ from accent_analyser.core.rule_detection import (PhonemeOccurrences,
                                                  rules_to_str)
 from accent_analyser.core.rule_stats import (get_rule_occurrences,
                                              word_rules_to_rules_dict)
+from matplotlib import pyplot as plt
 from ordered_set import OrderedSet
 from pandas import DataFrame
 from scipy.cluster.hierarchy import dendrogram
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import AgglomerativeClustering, KMeans
 
 
 def get_fingerprint(speaker_word_rules: OrderedDictType[WordEntry, WordRules], speaker_phone_occurrences: PhoneOccurrences, speaker_phoneme_occurrences: PhonemeOccurrences, all_rules: OrderedSet[Rule]) -> Any:
@@ -37,16 +39,39 @@ def get_vector(rule_occurences, all_rules):
 
 
 def compare_two_fingerprints(fingerprint1: Any, fingerprint2: Any) -> float:
-  pass
+  return np.linalg.norm(np.array(fingerprint1) - np.array(fingerprint2))
 
 
-def cluster_fingerprints(fingerprints: List[Any]) -> float:
+def compare_all_fingerprints(fingerprints: List[Any], labels: List[str]):
+  comp_table = pd.DataFrame(0.01, index=labels, columns=labels)
+  for i in range(len(labels)):
+    comp_table.iloc[i, i] = 1
+    for j in range(i + 1, len(labels)):
+      comp_table.iat[i, j] = compare_two_fingerprints(fingerprints[i], fingerprints[j])
+      comp_table.iat[j, i] = comp_table.iat[i, j]
+  return comp_table
+
+
+def cluster_fingerprints(fingerprints: List[Any], labels: List[str]) -> float:
   AggloClust = AgglomerativeClustering(distance_threshold=0, n_clusters=None)
   clustering = AggloClust.fit(fingerprints)
-  plot_dendrogram(clustering)
+  fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7, 3))
+  plot_dendrogram(clustering, ax, labels)
+  fig.savefig("dendrogram.png")
+  return fig
 
 
-def plot_dendrogram(model, **kwargs):
+def cluster_fingerprints_kmeans(fingerprints: List[Any], k: int, speaker_ids: List[str]):
+  KMeans_Clustering = KMeans(n_clusters=k)
+  cluster_labels = KMeans_Clustering.fit_predict(fingerprints)
+  for cluster_index in range(k):
+    speaker_ids_cluster_k = [speaker_ids[index] if cluster_label ==
+                             cluster_index else "-" for index, cluster_label in enumerate(cluster_labels)]
+    speaker_ids_cluster_k.remove("-")
+    print(f"To cluster {k} belong: {speaker_ids_cluster_k}")
+
+
+def plot_dendrogram(model, ax, labels, **kwargs):
     # Create linkage matrix and then plot the dendrogram
 
     # create the counts of samples under each node
@@ -65,4 +90,4 @@ def plot_dendrogram(model, **kwargs):
                                     counts]).astype(float)
 
   # Plot the corresponding dendrogram
-  dendrogram(linkage_matrix, **kwargs)
+  ax = dendrogram(linkage_matrix, ax=ax, labels=labels, **kwargs)
